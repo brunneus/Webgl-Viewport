@@ -1,7 +1,7 @@
 import THREE from '../../lib/three.js';
 
 let gridLines = [];
-let DISTANCE_GRID_FLOOR = 0.1;
+let DISTANCE_GRID_FLOOR = 0.05;
 let GRID_BLOCK_SIZE = 5;
 let SECUNDARY_LINE_COLOR = 0x999999;
 let PRIMARY_LINE_COLOR = 0x000000;

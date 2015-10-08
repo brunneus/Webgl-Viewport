@@ -12,6 +12,10 @@ class MouseControllerManager {
         return instance;
     }
 
+	onMouseUp(environment, event) {
+		this.current.onMouseUp(environment, event);
+	}
+
 	onMouseMove(environment, event) {
 		this.current.onMouseMove(environment, event);
 	}

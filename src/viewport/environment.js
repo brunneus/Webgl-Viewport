@@ -2,6 +2,10 @@ import THREE from '../../lib/three.js';
 import { ViewportCamera } from './viewportCamera.js';
 import { MouseControllerManager } from '../mouseControls/mouseControllerManager.js';
 import { Floor } from './floor.js';
+import { ViewportHelper} from '../util/viewportHelper.js'
+
+let selectedObject;
+let addedObjects = [];
 
 class Environment {
 	constructor(width, height) {
@@ -30,7 +34,7 @@ class Environment {
 		this.renderer.shadowMapEnabled = true;
 		this.renderer.shadowMapSoft = true;
 		this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
-
+		this.renderer.setClearColor(0xc6c6c6);
 		this.initializeControls();
 		this.disableContextMenu();
 		this.render();
@@ -82,8 +86,35 @@ class Environment {
 	}
 
 	addFloor() {
-		var floor = new Floor(100);
-		floor.addToScene(this.scene);
+		var size = 100;
+		var step = 5;
+
+		var gridHelper = new THREE.GridHelper(size, step);
+		gridHelper.setColors(0x000000, 0x999999);
+		this.scene.add(gridHelper);
+	}
+
+	createBox(width, height, depth) {
+		var geometry = new THREE.BoxGeometry(width, height, depth);
+		var material = new THREE.MeshBasicMaterial({ color: 0x999999 });
+		var box = new THREE.Mesh(geometry, material);
+		box.position.y = height / 2;
+		
+		this.scene.add(box);		
+		this.addedObjects.push(box);
+	}
+
+	selectObjectUnderMouse(event) {
+		var intersect = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, this, this.addedObjects);
+
+		this.scene.remove(this.selectedObject);
+
+		if (intersect) {
+			if (intersect.object instanceof THREE.Sprite === false) {
+				this.selectedObject = new THREE.BoxHelper(intersect.object);
+				this.scene.add(this.selectedObject);
+			}
+		}
 	}
 }
 

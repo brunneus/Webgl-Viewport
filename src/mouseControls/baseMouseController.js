@@ -1,19 +1,23 @@
 
-class BaseMouseController{
-	constructor(){
-		
+class BaseMouseController {
+	constructor() {
+
 	}
-	
-	onMouseMove(environment, event){
-		
+
+	onMouseUp(environment, event) {
+
 	}
-	
-	onMouseDown(environment, event){
-		
+
+	onMouseMove(environment, event) {
+
 	}
-	
-	onMouseWheel(environment, event){
-		
+
+	onMouseDown(environment, event) {
+
+	}
+
+	onMouseWheel(environment, event) {
+
 	}
 }
 

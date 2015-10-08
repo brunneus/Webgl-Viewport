@@ -18,7 +18,7 @@ class OrbitMouseController extends BaseMouseController {
 		this.moveStartX = event.clientX;
 		this.moveStartY = event.clientY;
 
-		let mouseIntersection = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment);
+		let mouseIntersection = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
 
 		if (mouseIntersection)
 			this.target = mouseIntersection.point;

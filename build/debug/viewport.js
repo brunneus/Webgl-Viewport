@@ -98,7 +98,12 @@
 	
 	var _mouseControlsMouseControllerManagerJs = __webpack_require__(8);
 	
-	var _floorJs = __webpack_require__(22);
+	var _floorJs = __webpack_require__(24);
+	
+	var _utilViewportHelperJs = __webpack_require__(16);
+	
+	var selectedObject = undefined;
+	var addedObjects = [];
 	
 	var Environment = (function () {
 		function Environment(width, height) {
@@ -131,7 +136,7 @@
 				this.renderer.shadowMapEnabled = true;
 				this.renderer.shadowMapSoft = true;
 				this.renderer.shadowMapType = _libThreeJs2['default'].PCFSoftShadowMap;
-	
+				this.renderer.setClearColor(0xc6c6c6);
 				this.initializeControls();
 				this.disableContextMenu();
 				this.render();
@@ -198,8 +203,37 @@
 		}, {
 			key: 'addFloor',
 			value: function addFloor() {
-				var floor = new _floorJs.Floor(100);
-				floor.addToScene(this.scene);
+				var size = 100;
+				var step = 5;
+	
+				var gridHelper = new _libThreeJs2['default'].GridHelper(size, step);
+				gridHelper.setColors(0x000000, 0x999999);
+				this.scene.add(gridHelper);
+			}
+		}, {
+			key: 'createBox',
+			value: function createBox(width, height, depth) {
+				var geometry = new _libThreeJs2['default'].BoxGeometry(width, height, depth);
+				var material = new _libThreeJs2['default'].MeshBasicMaterial({ color: 0x999999 });
+				var box = new _libThreeJs2['default'].Mesh(geometry, material);
+				box.position.y = height / 2;
+	
+				this.scene.add(box);
+				this.addedObjects.push(box);
+			}
+		}, {
+			key: 'selectObjectUnderMouse',
+			value: function selectObjectUnderMouse(event) {
+				var intersect = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, this, this.addedObjects);
+	
+				this.scene.remove(this.selectedObject);
+	
+				if (intersect) {
+					if (intersect.object instanceof _libThreeJs2['default'].Sprite === false) {
+						this.selectedObject = new _libThreeJs2['default'].BoxHelper(intersect.object);
+						this.scene.add(this.selectedObject);
+					}
+				}
 			}
 		}]);
 	
@@ -2676,6 +2710,11 @@
 		}
 	
 		_createClass(MouseControllerManager, [{
+			key: 'onMouseUp',
+			value: function onMouseUp(environment, event) {
+				this.current.onMouseUp(environment, event);
+			}
+		}, {
 			key: 'onMouseMove',
 			value: function onMouseMove(environment, event) {
 				this.current.onMouseMove(environment, event);
@@ -2708,6 +2747,7 @@
 /* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/* global THREE */
 	'use strict';
 	
 	Object.defineProperty(exports, '__esModule', {
@@ -2716,15 +2756,23 @@
 	
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
 	
 	var _orbitMouseControllerJs = __webpack_require__(12);
 	
-	var _zoomMouseControllerJs = __webpack_require__(16);
+	var _zoomMouseControllerJs = __webpack_require__(18);
 	
-	var _panMouseControllerJs = __webpack_require__(18);
+	var _panMouseControllerJs = __webpack_require__(20);
 	
-	var _eMouseButtonsJs = __webpack_require__(20);
+	var _eMouseButtonsJs = __webpack_require__(22);
+	
+	var mouseDownPosition = new _libThreeJs2['default'].Vector2();
 	
 	var ViewportMouseController = (function () {
 		function ViewportMouseController() {
@@ -2736,13 +2784,26 @@
 		}
 	
 		_createClass(ViewportMouseController, [{
+			key: 'onMouseUp',
+			value: function onMouseUp(environment, event) {
+				var mouseUpPosition = new _libThreeJs2['default'].Vector2(event.clientX, event.clientY);
+	
+				if (mouseUpPosition.distanceTo(this.mouseDownPosition) == 0) {
+					environment.selectObjectUnderMouse(event);
+				}
+			}
+		}, {
 			key: 'onMouseDown',
 			value: function onMouseDown(environment, event) {
+				this.mouseDownPosition = new _libThreeJs2['default'].Vector2(event.clientX, event.clientY);
+	
 				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
 					this.panMouseController.onMouseDown(environment, event);
 				} else if (event.which == _eMouseButtonsJs.eMouseButtons.Middle) {
 					this.orbitMouseController.onMouseDown(environment, event);
 				}
+	
+				event.preventDefault();
 			}
 		}, {
 			key: 'onMouseMove',
@@ -2757,6 +2818,7 @@
 			key: 'onMouseWheel',
 			value: function onMouseWheel(environemnt, event) {
 				this.zoomMouseController.onMouseWheel(environemnt, event);
+				event.preventDefault();
 			}
 		}]);
 	
@@ -2798,7 +2860,7 @@
 	
 	var _baseMouseControllerJs = __webpack_require__(14);
 	
-	var _utilViewportHelperJs = __webpack_require__(24);
+	var _utilViewportHelperJs = __webpack_require__(16);
 	
 	var PRECISION = 0.000001;
 	var worldUpAxis = new _libThreeJs2['default'].Vector3(0, 1, 0);
@@ -2822,7 +2884,7 @@
 				this.moveStartX = event.clientX;
 				this.moveStartY = event.clientY;
 	
-				var mouseIntersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment);
+				var mouseIntersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
 	
 				if (mouseIntersection) this.target = mouseIntersection.point;else this.target = new _libThreeJs2['default'].Vector3();
 			}
@@ -2891,6 +2953,9 @@
 		}
 	
 		_createClass(BaseMouseController, [{
+			key: "onMouseUp",
+			value: function onMouseUp(environment, event) {}
+		}, {
 			key: "onMouseMove",
 			value: function onMouseMove(environment, event) {}
 		}, {
@@ -2925,6 +2990,76 @@
 	
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var ViewportHelper = (function () {
+		function ViewportHelper() {
+			_classCallCheck(this, ViewportHelper);
+	
+			throw new TypeError('Cannot create an instance of ViewportHelper because it is mean to be static.');
+		}
+	
+		_createClass(ViewportHelper, null, [{
+			key: 'GetMouseDirectionOnWorld',
+			value: function GetMouseDirectionOnWorld(x, y, camera, environment) {
+				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment.width, environment.height);
+				return mouseCoordinate.unproject(camera);
+			}
+		}, {
+			key: 'GetCloserIntersectionFromPoint',
+			value: function GetCloserIntersectionFromPoint(x, y, environment, objectsToIntersect) {
+				var camera = environment.camera;
+				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment.width, environment.height);
+	
+				mouseCoordinate.unproject(camera);
+	
+				var dir = mouseCoordinate.sub(camera.position).normalize();
+				var rayCaster = new _libThreeJs2['default'].Raycaster(camera.position, dir, camera.near, camera.far);
+				var intersections = rayCaster.intersectObjects(objectsToIntersect, true);
+	
+				return intersections[0];
+			}
+		}, {
+			key: 'GetMouseProportionOnScreen',
+			value: function GetMouseProportionOnScreen(screenCoordinate, width, height) {
+				var x = screenCoordinate.x / width * 2 - 1;
+				var y = -(screenCoordinate.y / height) * 2 + 1;
+				var z = 0.5;
+	
+				return new _libThreeJs2['default'].Vector3(x, y, z);
+			}
+		}]);
+	
+		return ViewportHelper;
+	})();
+	
+	exports.ViewportHelper = ViewportHelper;
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(19);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+		value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
 	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -2939,7 +3074,7 @@
 	
 	var _baseMouseControllerJs = __webpack_require__(14);
 	
-	var _utilViewportHelperJs = __webpack_require__(24);
+	var _utilViewportHelperJs = __webpack_require__(16);
 	
 	var ZOOM_FACTOR = -0.08;
 	var ZOOM_DEFAULT_FACTOR = -3;
@@ -2957,7 +3092,7 @@
 			key: 'onMouseWheel',
 			value: function onMouseWheel(environment, event) {
 				var camera = environment.camera;
-				var intersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment);
+				var intersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
 				var worldPosition = new _libThreeJs2['default'].Vector3(0, 0, 0);
 				var factor = 0;
 	
@@ -2983,14 +3118,14 @@
 	exports.ZoomMouseController = ZoomMouseController;
 
 /***/ },
-/* 18 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(19);
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(21);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 19 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -3015,7 +3150,7 @@
 	
 	var _baseMouseControllerJs = __webpack_require__(14);
 	
-	var _utilViewportHelperJs = __webpack_require__(24);
+	var _utilViewportHelperJs = __webpack_require__(16);
 	
 	var PanMouseController = (function (_BaseMouseController) {
 			_inherits(PanMouseController, _BaseMouseController);
@@ -3030,7 +3165,7 @@
 					key: 'onMouseDown',
 					value: function onMouseDown(environment, event) {
 							var planeNormal = environment.camera.gaze.negate();
-							var closerIntersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment);
+							var closerIntersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
 							var distance = 0;
 	
 							if (closerIntersection) distance = new _libThreeJs2['default'].Plane(planeNormal, 0).distanceToPoint(closerIntersection.point);
@@ -3071,14 +3206,14 @@
 	exports.PanMouseController = PanMouseController;
 
 /***/ },
-/* 20 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(21);
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(23);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 21 */
+/* 23 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -3119,14 +3254,14 @@
 	exports.eMouseButtons = eMouseButtons;
 
 /***/ },
-/* 22 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(23);
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(25);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 23 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -3150,7 +3285,7 @@
 	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
 	
 	var gridLines = [];
-	var DISTANCE_GRID_FLOOR = 0.1;
+	var DISTANCE_GRID_FLOOR = 0.05;
 	var GRID_BLOCK_SIZE = 5;
 	var SECUNDARY_LINE_COLOR = 0x999999;
 	var PRIMARY_LINE_COLOR = 0x000000;
@@ -3200,77 +3335,6 @@
 	})(_libThreeJs2['default'].BoxGeometry);
 	
 	exports.Floor = Floor;
-
-/***/ },
-/* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(25);
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
-
-/***/ },
-/* 25 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	Object.defineProperty(exports, '__esModule', {
-		value: true
-	});
-	
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-	
-	var _libThreeJs = __webpack_require__(4);
-	
-	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
-	
-	var ViewportHelper = (function () {
-		function ViewportHelper() {
-			_classCallCheck(this, ViewportHelper);
-	
-			throw new TypeError('Cannot create an instance of ViewportHelper because it is mean to be static.');
-		}
-	
-		_createClass(ViewportHelper, null, [{
-			key: 'GetMouseDirectionOnWorld',
-			value: function GetMouseDirectionOnWorld(x, y, camera, environment) {
-				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment.width, environment.height);
-				return mouseCoordinate.unproject(camera);
-			}
-		}, {
-			key: 'GetCloserIntersectionFromPoint',
-			value: function GetCloserIntersectionFromPoint(x, y, environment) {
-				var camera = environment.camera;
-				var objectsToIntersect = environment.scene.children;
-				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment.width, environment.height);
-	
-				mouseCoordinate.unproject(camera);
-	
-				var dir = mouseCoordinate.sub(camera.position).normalize();
-				var rayCaster = new _libThreeJs2['default'].Raycaster(camera.position, dir, camera.near, camera.far);
-				var intersections = rayCaster.intersectObjects(objectsToIntersect, true);
-	
-				return intersections[0];
-			}
-		}, {
-			key: 'GetMouseProportionOnScreen',
-			value: function GetMouseProportionOnScreen(screenCoordinate, width, height) {
-				var x = screenCoordinate.x / width * 2 - 1;
-				var y = -(screenCoordinate.y / height) * 2 + 1;
-				var z = 0.5;
-	
-				return new _libThreeJs2['default'].Vector3(x, y, z);
-			}
-		}]);
-	
-		return ViewportHelper;
-	})();
-	
-	exports.ViewportHelper = ViewportHelper;
 
 /***/ }
 /******/ ]);

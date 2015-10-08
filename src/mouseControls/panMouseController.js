@@ -9,7 +9,7 @@ class PanMouseController extends BaseMouseController {
 
 	onMouseDown(environment, event) {
 		let planeNormal = environment.camera.gaze.negate();
-		let closerIntersection = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment);
+		let closerIntersection = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
 		let distance = 0;
 
 		if (closerIntersection)

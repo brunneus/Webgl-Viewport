@@ -11,9 +11,8 @@ class ViewportHelper {
 		return mouseCoordinate.unproject(camera);
 	}
 
-	static GetCloserIntersectionFromPoint(x, y, environment) {		
+	static GetCloserIntersectionFromPoint(x, y, environment, objectsToIntersect) {
 		let camera = environment.camera;
-		let objectsToIntersect = environment.scene.children;
 		let mouseCoordinate = this.GetMouseProportionOnScreen(new THREE.Vector2(x, y), environment.width, environment.height);
 
 		mouseCoordinate.unproject(camera);
@@ -21,9 +20,9 @@ class ViewportHelper {
 		let dir = mouseCoordinate.sub(camera.position).normalize();
 		let rayCaster = new THREE.Raycaster(camera.position, dir, camera.near, camera.far);
 		let intersections = rayCaster.intersectObjects(objectsToIntersect, true);
-		
+
 		return intersections[0];
-	}	
+	}
 
 	static GetMouseProportionOnScreen(screenCoordinate, width, height) {
 		let x = (screenCoordinate.x / width) * 2 - 1;
