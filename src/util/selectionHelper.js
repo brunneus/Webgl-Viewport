@@ -16,6 +16,8 @@ class SelectionHelper {
 
 		if (object) {
 			this.selectedObject = new THREE.BoxHelper(object);
+			this.selectedObject.renderOrder = 1;		
+			this.selectedObject.material.depthTest = false;
 			scene.add(this.selectedObject);
 		}
 

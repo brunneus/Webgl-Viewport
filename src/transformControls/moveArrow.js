@@ -11,7 +11,7 @@ class MoveArrow extends THREE.Object3D {
 		this.color = color;
 		this.size = size;
 
-		var material = new THREE.MeshBasicMaterial({ color: color, polygonOffset: true, polygonOffsetFactor: -0.5 });
+		var material = new THREE.MeshBasicMaterial({ color: color, depthTest: false });
 
 		var lineGeometry = new THREE.Geometry();
 		var arrowGeometry = new THREE.CylinderGeometry(ARROW_RADIUS_TOP, ARROW_RADIUS_BOTTOM, ARROW_HEIGHT);
@@ -22,6 +22,9 @@ class MoveArrow extends THREE.Object3D {
 		this.arrow = new THREE.Mesh(arrowGeometry, material);
 		this.line = new THREE.Line(lineGeometry, material);
 		this.arrow.position.copy(lineGeometry.vertices[1]);
+
+		this.line.renderOrder = 2;
+		this.arrow.renderOrder = 2;
 
 		this.add(this.arrow);
 		this.add(this.line);

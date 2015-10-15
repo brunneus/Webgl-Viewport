@@ -24,7 +24,7 @@ class PanMouseController extends BaseMouseController {
 		let camera = environment.camera;
 		let lastPoint = new THREE.Vector3(this.lastMouseX, this.lastMouseY, 0);
 		let currentPoint = new THREE.Vector3(event.clientX, event.clientY, 0);		
-		let delta = ViewportHelper.FindDifferenceOf2DPointsOnPlane(lastPoint, currentPoint, this.plane, environment);
+		let delta = ViewportHelper.FindDifferenceBetween2DPointsOnPlane(lastPoint, currentPoint, this.plane, environment);
 		camera.position.add(delta);
 
 		this.lastMouseX = event.clientX;

@@ -3061,8 +3061,8 @@
 				return new _libThreeJs2['default'].Plane(planeNormal, -distancePointToPlane);
 			}
 		}, {
-			key: 'FindDifferenceOf2DPointsOnPlane',
-			value: function FindDifferenceOf2DPointsOnPlane(p1, p2, plane, environment) {
+			key: 'FindDifferenceBetween2DPointsOnPlane',
+			value: function FindDifferenceBetween2DPointsOnPlane(p1, p2, plane, environment) {
 				var camera = environment.camera;
 	
 				var directionOfP1 = this.GetMouseProportionOnScreen(p1, environment.width, environment.height);
@@ -3220,7 +3220,7 @@
 				var camera = environment.camera;
 				var lastPoint = new _libThreeJs2['default'].Vector3(this.lastMouseX, this.lastMouseY, 0);
 				var currentPoint = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY, 0);
-				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceOf2DPointsOnPlane(lastPoint, currentPoint, this.plane, environment);
+				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceBetween2DPointsOnPlane(lastPoint, currentPoint, this.plane, environment);
 				camera.position.add(delta);
 	
 				this.lastMouseX = event.clientX;
@@ -3457,7 +3457,7 @@
 	
 				var movePlaneNormal = this.findMovePlaneNormal(directionToMove);
 				var movePlane = _utilViewportHelperJs.ViewportHelper.CreatePlaneAtPoint(intersectedAxisPoint, movePlaneNormal);
-				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceOf2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
+				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceBetween2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
 	
 				object.position.add(delta);
 				this.position.add(delta);
@@ -3522,7 +3522,7 @@
 			this.color = color;
 			this.size = size;
 	
-			var material = new _libThreeJs2['default'].MeshBasicMaterial({ color: color, polygonOffset: true, polygonOffsetFactor: -0.5 });
+			var material = new _libThreeJs2['default'].MeshBasicMaterial({ color: color, depthTest: false });
 	
 			var lineGeometry = new _libThreeJs2['default'].Geometry();
 			var arrowGeometry = new _libThreeJs2['default'].CylinderGeometry(ARROW_RADIUS_TOP, ARROW_RADIUS_BOTTOM, ARROW_HEIGHT);
@@ -3533,6 +3533,9 @@
 			this.arrow = new _libThreeJs2['default'].Mesh(arrowGeometry, material);
 			this.line = new _libThreeJs2['default'].Line(lineGeometry, material);
 			this.arrow.position.copy(lineGeometry.vertices[1]);
+	
+			this.line.renderOrder = 2;
+			this.arrow.renderOrder = 2;
 	
 			this.add(this.arrow);
 			this.add(this.line);
@@ -3601,6 +3604,8 @@
 	
 				if (object) {
 					this.selectedObject = new _libThreeJs2['default'].BoxHelper(object);
+					this.selectedObject.renderOrder = 1;
+					this.selectedObject.material.depthTest = false;
 					scene.add(this.selectedObject);
 				}
 	

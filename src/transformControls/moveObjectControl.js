@@ -27,7 +27,7 @@ class MoveObjectControl extends THREE.Object3D {
 
 		let movePlaneNormal = this.findMovePlaneNormal(directionToMove);
 		let movePlane = ViewportHelper.CreatePlaneAtPoint(intersectedAxisPoint, movePlaneNormal);
-		let delta = ViewportHelper.FindDifferenceOf2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
+		let delta = ViewportHelper.FindDifferenceBetween2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
 
 		object.position.add(delta);
 		this.position.add(delta);

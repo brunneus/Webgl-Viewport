@@ -38,7 +38,7 @@ class ViewportHelper {
 		return new THREE.Plane(planeNormal, -distancePointToPlane);
 	}
 
-	static FindDifferenceOf2DPointsOnPlane(p1, p2, plane, environment) {
+	static FindDifferenceBetween2DPointsOnPlane(p1, p2, plane, environment) {
 		let  camera = environment.camera;
 		
 		let directionOfP1 = this.GetMouseProportionOnScreen(p1, environment.width, environment.height);
