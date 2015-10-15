@@ -3,8 +3,8 @@ import { ViewportCamera } from './viewportCamera.js';
 import { MouseControllerManager } from '../mouseControls/mouseControllerManager.js';
 import { Floor } from './floor.js';
 import { ViewportHelper} from '../util/viewportHelper.js'
+import { SelectionHelper } from '../util/selectionHelper.js'
 
-let selectedObject;
 let addedObjects = [];
 
 class Environment {
@@ -38,6 +38,7 @@ class Environment {
 		this.initializeControls();
 		this.disableContextMenu();
 		this.render();
+
 	}
 
 	initializeControls() {
@@ -99,21 +100,23 @@ class Environment {
 		var material = new THREE.MeshBasicMaterial({ color: 0x999999 });
 		var box = new THREE.Mesh(geometry, material);
 		box.position.y = height / 2;
-		
-		this.scene.add(box);		
-		this.addedObjects.push(box);
+
+		this.scene.add(box);
+		addedObjects.push(box);
+	}
+
+	getObjectsOnScene() {
+		return addedObjects;
 	}
 
 	selectObjectUnderMouse(event) {
-		var intersect = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, this, this.addedObjects);
-
-		this.scene.remove(this.selectedObject);
+		var intersect = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, this, addedObjects);
 
 		if (intersect) {
-			if (intersect.object instanceof THREE.Sprite === false) {
-				this.selectedObject = new THREE.BoxHelper(intersect.object);
-				this.scene.add(this.selectedObject);
-			}
+			SelectionHelper.selectObject(intersect.object, this.scene);
+		}
+		else {
+			SelectionHelper.selectObject(null, this.scene);
 		}
 	}
 }

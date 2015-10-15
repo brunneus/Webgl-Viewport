@@ -31,6 +31,27 @@ class ViewportHelper {
 
 		return new THREE.Vector3(x, y, z);
 	}
+
+	static CreatePlaneAtPoint(point, planeNormal) {
+		var planeAtOringin = new THREE.Plane(planeNormal, 0);
+		var distancePointToPlane = planeAtOringin.distanceToPoint(point);
+		return new THREE.Plane(planeNormal, -distancePointToPlane);
+	}
+
+	static FindDifferenceOf2DPointsOnPlane(p1, p2, plane, environment) {
+		let  camera = environment.camera;
+		
+		let directionOfP1 = this.GetMouseProportionOnScreen(p1, environment.width, environment.height);
+		let directionOfP2 = this.GetMouseProportionOnScreen(p2, environment.width, environment.height);
+
+		directionOfP1.unproject(camera).sub(camera.position).normalize();
+		directionOfP2.unproject(camera).sub(camera.position).normalize();
+
+		p1 = new THREE.Ray(camera.position, directionOfP1).intersectPlane(plane);
+		p2 = new THREE.Ray(camera.position, directionOfP2).intersectPlane(plane);
+
+		return p1.sub(p2);
+	}
 }
 
 export { ViewportHelper };

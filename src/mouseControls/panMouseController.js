@@ -10,12 +10,11 @@ class PanMouseController extends BaseMouseController {
 	onMouseDown(environment, event) {
 		let planeNormal = environment.camera.gaze.negate();
 		let closerIntersection = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
-		let distance = 0;
 
 		if (closerIntersection)
-			distance = new THREE.Plane(planeNormal, 0).distanceToPoint(closerIntersection.point);
-
-		this.plane = new THREE.Plane(planeNormal, -distance);
+			this.plane = ViewportHelper.CreatePlaneAtPoint(closerIntersection.point, planeNormal);
+		else
+			this.plane = new THREE.Plane(planeNormal, 0);
 
 		this.lastMouseX = event.clientX;
 		this.lastMouseY = event.clientY;
@@ -23,20 +22,9 @@ class PanMouseController extends BaseMouseController {
 
 	onMouseMove(environment, event) {
 		let camera = environment.camera;
-
 		let lastPoint = new THREE.Vector3(this.lastMouseX, this.lastMouseY, 0);
-		let currentPoint = new THREE.Vector3(event.clientX, event.clientY, 0);
-
-		let directionOfLastPoint = ViewportHelper.GetMouseProportionOnScreen(lastPoint, environment.width, environment.height);
-		let directionOfCurrentPoint = ViewportHelper.GetMouseProportionOnScreen(currentPoint, environment.width, environment.height);
-
-		directionOfLastPoint.unproject(camera).sub(camera.position).normalize();
-		directionOfCurrentPoint.unproject(camera).sub(camera.position).normalize();
-
-		lastPoint = new THREE.Ray(camera.position, directionOfLastPoint).intersectPlane(this.plane);
-		currentPoint = new THREE.Ray(camera.position, directionOfCurrentPoint).intersectPlane(this.plane);
-
-		let delta = lastPoint.sub(currentPoint);
+		let currentPoint = new THREE.Vector3(event.clientX, event.clientY, 0);		
+		let delta = ViewportHelper.FindDifferenceOf2DPointsOnPlane(lastPoint, currentPoint, this.plane, environment);
 		camera.position.add(delta);
 
 		this.lastMouseX = event.clientX;

@@ -98,11 +98,12 @@
 	
 	var _mouseControlsMouseControllerManagerJs = __webpack_require__(8);
 	
-	var _floorJs = __webpack_require__(24);
+	var _floorJs = __webpack_require__(34);
 	
 	var _utilViewportHelperJs = __webpack_require__(16);
 	
-	var selectedObject = undefined;
+	var _utilSelectionHelperJs = __webpack_require__(30);
+	
 	var addedObjects = [];
 	
 	var Environment = (function () {
@@ -219,20 +220,22 @@
 				box.position.y = height / 2;
 	
 				this.scene.add(box);
-				this.addedObjects.push(box);
+				addedObjects.push(box);
+			}
+		}, {
+			key: 'getObjectsOnScene',
+			value: function getObjectsOnScene() {
+				return addedObjects;
 			}
 		}, {
 			key: 'selectObjectUnderMouse',
 			value: function selectObjectUnderMouse(event) {
-				var intersect = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, this, this.addedObjects);
-	
-				this.scene.remove(this.selectedObject);
+				var intersect = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, this, addedObjects);
 	
 				if (intersect) {
-					if (intersect.object instanceof _libThreeJs2['default'].Sprite === false) {
-						this.selectedObject = new _libThreeJs2['default'].BoxHelper(intersect.object);
-						this.scene.add(this.selectedObject);
-					}
+					_utilSelectionHelperJs.SelectionHelper.selectObject(intersect.object, this.scene);
+				} else {
+					_utilSelectionHelperJs.SelectionHelper.selectObject(null, this.scene);
 				}
 			}
 		}]);
@@ -2770,7 +2773,11 @@
 	
 	var _panMouseControllerJs = __webpack_require__(20);
 	
-	var _eMouseButtonsJs = __webpack_require__(22);
+	var _transformObjectMouseControllerJs = __webpack_require__(22);
+	
+	var _utilSelectionHelperJs = __webpack_require__(30);
+	
+	var _eMouseButtonsJs = __webpack_require__(32);
 	
 	var mouseDownPosition = new _libThreeJs2['default'].Vector2();
 	
@@ -2781,6 +2788,7 @@
 			this.orbitMouseController = new _orbitMouseControllerJs.OrbitMouseController();
 			this.zoomMouseController = new _zoomMouseControllerJs.ZoomMouseController();
 			this.panMouseController = new _panMouseControllerJs.PanMouseController();
+			this.transformObjectMouseController = new _transformObjectMouseControllerJs.TransformObjectMouseController();
 		}
 	
 		_createClass(ViewportMouseController, [{
@@ -2791,6 +2799,8 @@
 				if (mouseUpPosition.distanceTo(this.mouseDownPosition) == 0) {
 					environment.selectObjectUnderMouse(event);
 				}
+	
+				this.transformObjectMouseController.onMouseUp(environment, event);
 			}
 		}, {
 			key: 'onMouseDown',
@@ -2798,6 +2808,10 @@
 				this.mouseDownPosition = new _libThreeJs2['default'].Vector2(event.clientX, event.clientY);
 	
 				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
+					this.transformObjectMouseController.onMouseDown(environment, event);
+	
+					if (event.cancelBubble) return;
+	
 					this.panMouseController.onMouseDown(environment, event);
 				} else if (event.which == _eMouseButtonsJs.eMouseButtons.Middle) {
 					this.orbitMouseController.onMouseDown(environment, event);
@@ -2808,7 +2822,12 @@
 		}, {
 			key: 'onMouseMove',
 			value: function onMouseMove(environment, event) {
+	
 				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
+					this.transformObjectMouseController.onMouseMove(environment, event);
+	
+					if (event.cancelBubble) return;
+	
 					this.panMouseController.onMouseMove(environment, event);
 				} else if (event.which == _eMouseButtonsJs.eMouseButtons.Middle) {
 					this.orbitMouseController.onMouseMove(environment, event);
@@ -3034,6 +3053,29 @@
 	
 				return new _libThreeJs2['default'].Vector3(x, y, z);
 			}
+		}, {
+			key: 'CreatePlaneAtPoint',
+			value: function CreatePlaneAtPoint(point, planeNormal) {
+				var planeAtOringin = new _libThreeJs2['default'].Plane(planeNormal, 0);
+				var distancePointToPlane = planeAtOringin.distanceToPoint(point);
+				return new _libThreeJs2['default'].Plane(planeNormal, -distancePointToPlane);
+			}
+		}, {
+			key: 'FindDifferenceOf2DPointsOnPlane',
+			value: function FindDifferenceOf2DPointsOnPlane(p1, p2, plane, environment) {
+				var camera = environment.camera;
+	
+				var directionOfP1 = this.GetMouseProportionOnScreen(p1, environment.width, environment.height);
+				var directionOfP2 = this.GetMouseProportionOnScreen(p2, environment.width, environment.height);
+	
+				directionOfP1.unproject(camera).sub(camera.position).normalize();
+				directionOfP2.unproject(camera).sub(camera.position).normalize();
+	
+				p1 = new _libThreeJs2['default'].Ray(camera.position, directionOfP1).intersectPlane(plane);
+				p2 = new _libThreeJs2['default'].Ray(camera.position, directionOfP2).intersectPlane(plane);
+	
+				return p1.sub(p2);
+			}
 		}]);
 	
 		return ViewportHelper;
@@ -3131,7 +3173,7 @@
 	'use strict';
 	
 	Object.defineProperty(exports, '__esModule', {
-			value: true
+		value: true
 	});
 	
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -3153,54 +3195,40 @@
 	var _utilViewportHelperJs = __webpack_require__(16);
 	
 	var PanMouseController = (function (_BaseMouseController) {
-			_inherits(PanMouseController, _BaseMouseController);
+		_inherits(PanMouseController, _BaseMouseController);
 	
-			function PanMouseController() {
-					_classCallCheck(this, PanMouseController);
+		function PanMouseController() {
+			_classCallCheck(this, PanMouseController);
 	
-					_get(Object.getPrototypeOf(PanMouseController.prototype), 'constructor', this).call(this);
+			_get(Object.getPrototypeOf(PanMouseController.prototype), 'constructor', this).call(this);
+		}
+	
+		_createClass(PanMouseController, [{
+			key: 'onMouseDown',
+			value: function onMouseDown(environment, event) {
+				var planeNormal = environment.camera.gaze.negate();
+				var closerIntersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
+	
+				if (closerIntersection) this.plane = _utilViewportHelperJs.ViewportHelper.CreatePlaneAtPoint(closerIntersection.point, planeNormal);else this.plane = new _libThreeJs2['default'].Plane(planeNormal, 0);
+	
+				this.lastMouseX = event.clientX;
+				this.lastMouseY = event.clientY;
 			}
+		}, {
+			key: 'onMouseMove',
+			value: function onMouseMove(environment, event) {
+				var camera = environment.camera;
+				var lastPoint = new _libThreeJs2['default'].Vector3(this.lastMouseX, this.lastMouseY, 0);
+				var currentPoint = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY, 0);
+				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceOf2DPointsOnPlane(lastPoint, currentPoint, this.plane, environment);
+				camera.position.add(delta);
 	
-			_createClass(PanMouseController, [{
-					key: 'onMouseDown',
-					value: function onMouseDown(environment, event) {
-							var planeNormal = environment.camera.gaze.negate();
-							var closerIntersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
-							var distance = 0;
+				this.lastMouseX = event.clientX;
+				this.lastMouseY = event.clientY;
+			}
+		}]);
 	
-							if (closerIntersection) distance = new _libThreeJs2['default'].Plane(planeNormal, 0).distanceToPoint(closerIntersection.point);
-	
-							this.plane = new _libThreeJs2['default'].Plane(planeNormal, -distance);
-	
-							this.lastMouseX = event.clientX;
-							this.lastMouseY = event.clientY;
-					}
-			}, {
-					key: 'onMouseMove',
-					value: function onMouseMove(environment, event) {
-							var camera = environment.camera;
-	
-							var lastPoint = new _libThreeJs2['default'].Vector3(this.lastMouseX, this.lastMouseY, 0);
-							var currentPoint = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY, 0);
-	
-							var directionOfLastPoint = _utilViewportHelperJs.ViewportHelper.GetMouseProportionOnScreen(lastPoint, environment.width, environment.height);
-							var directionOfCurrentPoint = _utilViewportHelperJs.ViewportHelper.GetMouseProportionOnScreen(currentPoint, environment.width, environment.height);
-	
-							directionOfLastPoint.unproject(camera).sub(camera.position).normalize();
-							directionOfCurrentPoint.unproject(camera).sub(camera.position).normalize();
-	
-							lastPoint = new _libThreeJs2['default'].Ray(camera.position, directionOfLastPoint).intersectPlane(this.plane);
-							currentPoint = new _libThreeJs2['default'].Ray(camera.position, directionOfCurrentPoint).intersectPlane(this.plane);
-	
-							var delta = lastPoint.sub(currentPoint);
-							camera.position.add(delta);
-	
-							this.lastMouseX = event.clientX;
-							this.lastMouseY = event.clientY;
-					}
-			}]);
-	
-			return PanMouseController;
+		return PanMouseController;
 	})(_baseMouseControllerJs.BaseMouseController);
 	
 	exports.PanMouseController = PanMouseController;
@@ -3214,6 +3242,386 @@
 
 /***/ },
 /* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+		value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var _baseMouseControllerJs = __webpack_require__(14);
+	
+	var _utilViewportHelperJs = __webpack_require__(16);
+	
+	var _transformControlsTransformObjectControlJs = __webpack_require__(24);
+	
+	var _utilSelectionHelperJs = __webpack_require__(30);
+	
+	var TransformObjectMouseController = (function () {
+		function TransformObjectMouseController() {
+			_classCallCheck(this, TransformObjectMouseController);
+	
+			this.transformObjectControl = new _transformControlsTransformObjectControlJs.TransformObjectControl();
+		}
+	
+		_createClass(TransformObjectMouseController, [{
+			key: 'onMouseDown',
+			value: function onMouseDown(environment, event) {
+				this.isMousePressed = true;
+				this.lastMousePosition = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY);
+				this.intersection = this.transformObjectControl.getIntersection(event.clientX, event.clientY, environment);
+	
+				event.cancelBubble = this.intersection;
+			}
+		}, {
+			key: 'onMouseUp',
+			value: function onMouseUp(environment, event) {
+				var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
+				this.transformObjectControl.showCurrentControls(selectedObject, environment.scene);
+				this.isMousePressed = false;
+			}
+		}, {
+			key: 'onMouseMove',
+			value: function onMouseMove(environment, event) {
+				var currentPosition = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY);
+	
+				if (this.isMousePressed && this.intersection) {
+					var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
+					var intersectedAxis = this.intersection.object.parent;
+					var intersectedAxisPoint = this.intersection.point;
+					var intersectedAxisDirection = intersectedAxis.normal;
+	
+					this.transformObjectControl.moveOject(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
+					event.cancelBubble = true;
+				}
+	
+				this.lastMousePosition = currentPosition;
+			}
+		}]);
+	
+		return TransformObjectMouseController;
+	})();
+	
+	exports.TransformObjectMouseController = TransformObjectMouseController;
+
+/***/ },
+/* 24 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(25);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 25 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+		value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var _utilViewportHelperJs = __webpack_require__(16);
+	
+	var _moveObjectControlJs = __webpack_require__(26);
+	
+	var xAxisEndPosition = undefined;
+	var yAxisEndPosition = undefined;
+	var zAxisEndPosition = undefined;
+	
+	var lines = [];
+	var moveArrows = [];
+	
+	var TransformObjectControl = (function () {
+		function TransformObjectControl() {
+			_classCallCheck(this, TransformObjectControl);
+	
+			this.moveObjectControl = new _moveObjectControlJs.MoveObjectControl();
+		}
+	
+		_createClass(TransformObjectControl, [{
+			key: 'transform',
+			value: function transform() {}
+		}, {
+			key: 'getIntersection',
+			value: function getIntersection(x, y, environment) {
+				var intersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(x, y, environment, [this.moveObjectControl]);
+				return intersection;
+			}
+		}, {
+			key: 'showCurrentControls',
+			value: function showCurrentControls(object, scene) {
+				scene.remove(this.moveObjectControl);
+	
+				if (object) {
+					this.moveObjectControl.position.copy(object.position);
+					scene.add(this.moveObjectControl);
+				}
+			}
+		}, {
+			key: 'moveOject',
+			value: function moveOject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
+				this.moveObjectControl.moveOject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);
+			}
+		}]);
+	
+		return TransformObjectControl;
+	})();
+	
+	exports.TransformObjectControl = TransformObjectControl;
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(27);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+		value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var _moveArrowJs = __webpack_require__(28);
+	
+	var _utilViewportHelperJs = __webpack_require__(16);
+	
+	var ARROW_RADIUS_TOP = 0.01;
+	var ARROW_RADIUS_BOTTOM = 0.2;
+	var ARROW_HEIGHT = 0.6;
+	
+	var MoveObjectControl = (function (_THREE$Object3D) {
+		_inherits(MoveObjectControl, _THREE$Object3D);
+	
+		function MoveObjectControl() {
+			_classCallCheck(this, MoveObjectControl);
+	
+			_get(Object.getPrototypeOf(MoveObjectControl.prototype), 'constructor', this).call(this);
+	
+			var xArrow = new _moveArrowJs.MoveArrow(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 10);
+			var yArrow = new _moveArrowJs.MoveArrow(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 10);
+			var zArrow = new _moveArrowJs.MoveArrow(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 10);
+	
+			xArrow.rotateArrow(new _libThreeJs2['default'].Vector3(0, 0, -1), Math.PI / 2);
+			zArrow.rotateArrow(new _libThreeJs2['default'].Vector3(1, 0, 0), Math.PI / 2);
+	
+			this.add(xArrow);
+			this.add(yArrow);
+			this.add(zArrow);
+		}
+	
+		_createClass(MoveObjectControl, [{
+			key: 'moveOject',
+			value: function moveOject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
+				if (!object) return;
+	
+				var movePlaneNormal = this.findMovePlaneNormal(directionToMove);
+				var movePlane = _utilViewportHelperJs.ViewportHelper.CreatePlaneAtPoint(intersectedAxisPoint, movePlaneNormal);
+				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceOf2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
+	
+				object.position.add(delta);
+				this.position.add(delta);
+			}
+		}, {
+			key: 'findMovePlaneNormal',
+			value: function findMovePlaneNormal(direction) {
+				if (direction.equals(new _libThreeJs2['default'].Vector3(1, 0, 0)) || direction.equals(new _libThreeJs2['default'].Vector3(0, 1, 0))) return new _libThreeJs2['default'].Vector3(0, 0, 1);
+	
+				return new _libThreeJs2['default'].Vector3(0, 1, 0);
+			}
+		}]);
+	
+		return MoveObjectControl;
+	})(_libThreeJs2['default'].Object3D);
+	
+	exports.MoveObjectControl = MoveObjectControl;
+
+/***/ },
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(29);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 29 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+		value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var ARROW_RADIUS_TOP = 0.01;
+	var ARROW_RADIUS_BOTTOM = 0.2;
+	var ARROW_HEIGHT = 0.6;
+	
+	var MoveArrow = (function (_THREE$Object3D) {
+		_inherits(MoveArrow, _THREE$Object3D);
+	
+		function MoveArrow(normal, color, size) {
+			_classCallCheck(this, MoveArrow);
+	
+			_get(Object.getPrototypeOf(MoveArrow.prototype), 'constructor', this).call(this);
+			this.normal = normal;
+			this.color = color;
+			this.size = size;
+	
+			var material = new _libThreeJs2['default'].MeshBasicMaterial({ color: color, polygonOffset: true, polygonOffsetFactor: -0.5 });
+	
+			var lineGeometry = new _libThreeJs2['default'].Geometry();
+			var arrowGeometry = new _libThreeJs2['default'].CylinderGeometry(ARROW_RADIUS_TOP, ARROW_RADIUS_BOTTOM, ARROW_HEIGHT);
+	
+			lineGeometry.vertices.push(this.position);
+			lineGeometry.vertices.push(this.position.clone().add(normal.clone().multiplyScalar(size)));
+	
+			this.arrow = new _libThreeJs2['default'].Mesh(arrowGeometry, material);
+			this.line = new _libThreeJs2['default'].Line(lineGeometry, material);
+			this.arrow.position.copy(lineGeometry.vertices[1]);
+	
+			this.add(this.arrow);
+			this.add(this.line);
+		}
+	
+		_createClass(MoveArrow, [{
+			key: 'rotateArrow',
+			value: function rotateArrow(axis, angle) {
+				this.arrow.rotateOnAxis(axis, angle);
+			}
+		}, {
+			key: 'getNormal',
+			value: function getNormal() {
+				return this.normal();
+			}
+		}]);
+	
+		return MoveArrow;
+	})(_libThreeJs2['default'].Object3D);
+	
+	exports.MoveArrow = MoveArrow;
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(31);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 31 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+		value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var selectedObject = undefined;
+	
+	var SelectionHelper = (function () {
+		function SelectionHelper() {
+			_classCallCheck(this, SelectionHelper);
+		}
+	
+		_createClass(SelectionHelper, null, [{
+			key: 'getSelectedObject',
+			value: function getSelectedObject() {
+				return selectedObject;
+			}
+		}, {
+			key: 'selectObject',
+			value: function selectObject(object, scene) {
+				scene.remove(this.selectedObject);
+	
+				if (object) {
+					this.selectedObject = new _libThreeJs2['default'].BoxHelper(object);
+					scene.add(this.selectedObject);
+				}
+	
+				selectedObject = object;
+			}
+		}]);
+	
+		return SelectionHelper;
+	})();
+	
+	exports.SelectionHelper = SelectionHelper;
+
+/***/ },
+/* 32 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(33);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 33 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -3254,14 +3662,14 @@
 	exports.eMouseButtons = eMouseButtons;
 
 /***/ },
-/* 24 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(25);
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(35);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 25 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
