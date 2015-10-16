@@ -30,13 +30,8 @@ class ViewportMouseController {
 	onMouseDown(environment, event) {
 		this.mouseDownPosition = new THREE.Vector2(event.clientX, event.clientY);
 
-
 		if (event.which == eMouseButtons.Left) {
 			this.transformObjectMouseController.onMouseDown(environment, event);
-
-			if (event.cancelBubble)
-				return;
-
 			this.panMouseController.onMouseDown(environment, event);
 		}
 		else if (event.which == eMouseButtons.Middle) {

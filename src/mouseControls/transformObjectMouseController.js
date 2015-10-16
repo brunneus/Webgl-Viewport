@@ -25,20 +25,19 @@ class TransformObjectMouseController {
 
 	onMouseMove(environment, event) {
 		var currentPosition = new THREE.Vector3(event.clientX, event.clientY);
+		var selectedObject = SelectionHelper.getSelectedObject();
 
-		if (this.isMousePressed && this.intersection) {
-			var selectedObject = SelectionHelper.getSelectedObject();
+		if (this.isMousePressed && this.intersection && selectedObject) {
 			var intersectedAxis = this.intersection.object.parent;
 			var intersectedAxisPoint = this.intersection.point;
 			var intersectedAxisDirection = intersectedAxis.normal;
 
-			this.transformObjectControl.moveOject(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
+			this.transformObjectControl.transform(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
 			event.cancelBubble = true;
 		}
 
 		this.lastMousePosition = currentPosition;
 	}
-
 }
 
 export { TransformObjectMouseController };

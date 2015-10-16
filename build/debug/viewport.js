@@ -98,11 +98,11 @@
 	
 	var _mouseControlsMouseControllerManagerJs = __webpack_require__(8);
 	
-	var _floorJs = __webpack_require__(34);
+	var _floorJs = __webpack_require__(42);
 	
 	var _utilViewportHelperJs = __webpack_require__(16);
 	
-	var _utilSelectionHelperJs = __webpack_require__(30);
+	var _utilSelectionHelperJs = __webpack_require__(38);
 	
 	var addedObjects = [];
 	
@@ -2775,9 +2775,9 @@
 	
 	var _transformObjectMouseControllerJs = __webpack_require__(22);
 	
-	var _utilSelectionHelperJs = __webpack_require__(30);
+	var _utilSelectionHelperJs = __webpack_require__(38);
 	
-	var _eMouseButtonsJs = __webpack_require__(32);
+	var _eMouseButtonsJs = __webpack_require__(40);
 	
 	var mouseDownPosition = new _libThreeJs2['default'].Vector2();
 	
@@ -2809,9 +2809,6 @@
 	
 				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
 					this.transformObjectMouseController.onMouseDown(environment, event);
-	
-					if (event.cancelBubble) return;
-	
 					this.panMouseController.onMouseDown(environment, event);
 				} else if (event.which == _eMouseButtonsJs.eMouseButtons.Middle) {
 					this.orbitMouseController.onMouseDown(environment, event);
@@ -3266,7 +3263,7 @@
 	
 	var _transformControlsTransformObjectControlJs = __webpack_require__(24);
 	
-	var _utilSelectionHelperJs = __webpack_require__(30);
+	var _utilSelectionHelperJs = __webpack_require__(38);
 	
 	var TransformObjectMouseController = (function () {
 		function TransformObjectMouseController() {
@@ -3295,14 +3292,14 @@
 			key: 'onMouseMove',
 			value: function onMouseMove(environment, event) {
 				var currentPosition = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY);
+				var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
 	
-				if (this.isMousePressed && this.intersection) {
-					var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
+				if (this.isMousePressed && this.intersection && selectedObject) {
 					var intersectedAxis = this.intersection.object.parent;
 					var intersectedAxisPoint = this.intersection.point;
 					var intersectedAxisDirection = intersectedAxis.normal;
 	
-					this.transformObjectControl.moveOject(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
+					this.transformObjectControl.transform(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
 					event.cancelBubble = true;
 				}
 	
@@ -3346,43 +3343,59 @@
 	
 	var _moveObjectControlJs = __webpack_require__(26);
 	
-	var xAxisEndPosition = undefined;
-	var yAxisEndPosition = undefined;
-	var zAxisEndPosition = undefined;
+	var _scaleObjectControlJs = __webpack_require__(34);
 	
-	var lines = [];
-	var moveArrows = [];
+	var _eTransformModeJs = __webpack_require__(36);
 	
 	var TransformObjectControl = (function () {
 		function TransformObjectControl() {
 			_classCallCheck(this, TransformObjectControl);
 	
 			this.moveObjectControl = new _moveObjectControlJs.MoveObjectControl();
+			this.scaleObjectControl = new _scaleObjectControlJs.ScaleObjectControl();
+	
+			this.currentMode = _eTransformModeJs.eTransformMode.Move;
+			this.currentControl = this.moveObjectControl;
+	
+			this.currentMode = _eTransformModeJs.eTransformMode.Scale;
+			this.currentControl = this.scaleObjectControl;
 		}
 	
 		_createClass(TransformObjectControl, [{
-			key: 'transform',
-			value: function transform() {}
-		}, {
 			key: 'getIntersection',
 			value: function getIntersection(x, y, environment) {
-				var intersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(x, y, environment, [this.moveObjectControl]);
+				var intersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(x, y, environment, [this.currentControl]);
 				return intersection;
 			}
 		}, {
 			key: 'showCurrentControls',
 			value: function showCurrentControls(object, scene) {
-				scene.remove(this.moveObjectControl);
+				scene.remove(this.currentControl);
 	
 				if (object) {
-					this.moveObjectControl.position.copy(object.position);
-					scene.add(this.moveObjectControl);
+					this.currentControl.position.copy(object.position);
+					scene.add(this.currentControl);
 				}
 			}
 		}, {
-			key: 'moveOject',
-			value: function moveOject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
-				this.moveObjectControl.moveOject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);
+			key: 'transform',
+			value: function transform(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
+				if (this.currentMode == _eTransformModeJs.eTransformMode.Move) {
+					this.moveObjectControl.moveObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);
+				} else {
+					this.scaleObjectControl.scaleObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);
+				}
+			}
+		}, {
+			key: 'changeCurrentMode',
+			value: function changeCurrentMode(transformMode, scene, object) {
+				if (this.currentMode === transformMode) return;
+	
+				this.currentMode = transformMode;
+	
+				if (this.currentMode === _eTransformModeJs.eTransformMode.Move) this.currentControl = this.moveObjectControl;else this.currentControl = this.scaleObjectControl;
+	
+				this.showCurrentControls(scene, object);
 			}
 		}]);
 	
@@ -3422,13 +3435,11 @@
 	
 	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
 	
-	var _moveArrowJs = __webpack_require__(28);
+	var _moveAxisTransformJs = __webpack_require__(28);
+	
+	var _scaleAxisTransformJs = __webpack_require__(32);
 	
 	var _utilViewportHelperJs = __webpack_require__(16);
-	
-	var ARROW_RADIUS_TOP = 0.01;
-	var ARROW_RADIUS_BOTTOM = 0.2;
-	var ARROW_HEIGHT = 0.6;
 	
 	var MoveObjectControl = (function (_THREE$Object3D) {
 		_inherits(MoveObjectControl, _THREE$Object3D);
@@ -3438,9 +3449,9 @@
 	
 			_get(Object.getPrototypeOf(MoveObjectControl.prototype), 'constructor', this).call(this);
 	
-			var xArrow = new _moveArrowJs.MoveArrow(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 10);
-			var yArrow = new _moveArrowJs.MoveArrow(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 10);
-			var zArrow = new _moveArrowJs.MoveArrow(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 10);
+			var xArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 10);
+			var yArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 10);
+			var zArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 10);
 	
 			xArrow.rotateArrow(new _libThreeJs2['default'].Vector3(0, 0, -1), Math.PI / 2);
 			zArrow.rotateArrow(new _libThreeJs2['default'].Vector3(1, 0, 0), Math.PI / 2);
@@ -3451,8 +3462,8 @@
 		}
 	
 		_createClass(MoveObjectControl, [{
-			key: 'moveOject',
-			value: function moveOject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
+			key: 'moveObject',
+			value: function moveObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
 				if (!object) return;
 	
 				var movePlaneNormal = this.findMovePlaneNormal(directionToMove);
@@ -3490,6 +3501,75 @@
 	'use strict';
 	
 	Object.defineProperty(exports, '__esModule', {
+			value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var _baseAxisTransformJs = __webpack_require__(30);
+	
+	var ARROW_RADIUS_TOP = 0.01;
+	var ARROW_RADIUS_BOTTOM = 0.2;
+	var ARROW_HEIGHT = 0.6;
+	
+	var MoveAxisTransform = (function (_BaseAxisTransform) {
+			_inherits(MoveAxisTransform, _BaseAxisTransform);
+	
+			function MoveAxisTransform(normal, color, size) {
+					_classCallCheck(this, MoveAxisTransform);
+	
+					_get(Object.getPrototypeOf(MoveAxisTransform.prototype), 'constructor', this).call(this, normal, color, size);
+	
+					var material = this.axisMaterial;
+	
+					var arrowGeometry = new _libThreeJs2['default'].CylinderGeometry(ARROW_RADIUS_TOP, ARROW_RADIUS_BOTTOM, ARROW_HEIGHT);
+	
+					this.arrow = new _libThreeJs2['default'].Mesh(arrowGeometry, material);
+					this.arrow.position.copy(this.line.geometry.vertices[1]);
+	
+					this.arrow.renderOrder = 2;
+	
+					this.add(this.arrow);
+			}
+	
+			_createClass(MoveAxisTransform, [{
+					key: 'rotateArrow',
+					value: function rotateArrow(axis, angle) {
+							this.arrow.rotateOnAxis(axis, angle);
+					}
+			}]);
+	
+			return MoveAxisTransform;
+	})(_baseAxisTransformJs.BaseAxisTransform);
+	
+	exports.MoveAxisTransform = MoveAxisTransform;
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(31);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 31 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
 		value: true
 	});
 	
@@ -3507,66 +3587,233 @@
 	
 	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
 	
-	var ARROW_RADIUS_TOP = 0.01;
-	var ARROW_RADIUS_BOTTOM = 0.2;
-	var ARROW_HEIGHT = 0.6;
+	var BaseAxisTransform = (function (_THREE$Object3D) {
+		_inherits(BaseAxisTransform, _THREE$Object3D);
 	
-	var MoveArrow = (function (_THREE$Object3D) {
-		_inherits(MoveArrow, _THREE$Object3D);
+		function BaseAxisTransform(normal, color, size) {
+			_classCallCheck(this, BaseAxisTransform);
 	
-		function MoveArrow(normal, color, size) {
-			_classCallCheck(this, MoveArrow);
+			_get(Object.getPrototypeOf(BaseAxisTransform.prototype), 'constructor', this).call(this);
 	
-			_get(Object.getPrototypeOf(MoveArrow.prototype), 'constructor', this).call(this);
 			this.normal = normal;
 			this.color = color;
 			this.size = size;
 	
-			var material = new _libThreeJs2['default'].MeshBasicMaterial({ color: color, depthTest: false });
+			this.axisMaterial = new _libThreeJs2['default'].MeshBasicMaterial({ color: color, depthTest: false });
 	
 			var lineGeometry = new _libThreeJs2['default'].Geometry();
-			var arrowGeometry = new _libThreeJs2['default'].CylinderGeometry(ARROW_RADIUS_TOP, ARROW_RADIUS_BOTTOM, ARROW_HEIGHT);
-	
 			lineGeometry.vertices.push(this.position);
 			lineGeometry.vertices.push(this.position.clone().add(normal.clone().multiplyScalar(size)));
 	
-			this.arrow = new _libThreeJs2['default'].Mesh(arrowGeometry, material);
-			this.line = new _libThreeJs2['default'].Line(lineGeometry, material);
-			this.arrow.position.copy(lineGeometry.vertices[1]);
-	
+			this.line = new _libThreeJs2['default'].Line(lineGeometry, this.axisMaterial);
 			this.line.renderOrder = 2;
-			this.arrow.renderOrder = 2;
 	
-			this.add(this.arrow);
 			this.add(this.line);
 		}
 	
-		_createClass(MoveArrow, [{
-			key: 'rotateArrow',
-			value: function rotateArrow(axis, angle) {
-				this.arrow.rotateOnAxis(axis, angle);
-			}
-		}, {
+		_createClass(BaseAxisTransform, [{
 			key: 'getNormal',
 			value: function getNormal() {
 				return this.normal();
 			}
 		}]);
 	
-		return MoveArrow;
+		return BaseAxisTransform;
 	})(_libThreeJs2['default'].Object3D);
 	
-	exports.MoveArrow = MoveArrow;
+	exports.BaseAxisTransform = BaseAxisTransform;
 
 /***/ },
-/* 30 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(31);
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(33);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 31 */
+/* 33 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+			value: true
+	});
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var _baseAxisTransformJs = __webpack_require__(30);
+	
+	var ScaleAxisTransform = (function (_BaseAxisTransform) {
+			_inherits(ScaleAxisTransform, _BaseAxisTransform);
+	
+			function ScaleAxisTransform(normal, color, size) {
+					_classCallCheck(this, ScaleAxisTransform);
+	
+					_get(Object.getPrototypeOf(ScaleAxisTransform.prototype), 'constructor', this).call(this, normal, color, size);
+	
+					var material = this.axisMaterial;
+	
+					var boxGeometry = new _libThreeJs2['default'].BoxGeometry(.5, .5, .5);
+	
+					this.box = new _libThreeJs2['default'].Mesh(boxGeometry, material);
+					this.box.position.copy(this.line.geometry.vertices[1]);
+					this.box.renderOrder = 2;
+	
+					this.add(this.box);
+			}
+	
+			return ScaleAxisTransform;
+	})(_baseAxisTransformJs.BaseAxisTransform);
+	
+	exports.ScaleAxisTransform = ScaleAxisTransform;
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(35);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 35 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+		value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var _libThreeJs = __webpack_require__(4);
+	
+	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
+	
+	var _moveAxisTransformJs = __webpack_require__(28);
+	
+	var _scaleAxisTransformJs = __webpack_require__(32);
+	
+	var _utilViewportHelperJs = __webpack_require__(16);
+	
+	var ScaleObjectControl = (function (_THREE$Object3D) {
+		_inherits(ScaleObjectControl, _THREE$Object3D);
+	
+		function ScaleObjectControl() {
+			_classCallCheck(this, ScaleObjectControl);
+	
+			_get(Object.getPrototypeOf(ScaleObjectControl.prototype), 'constructor', this).call(this);
+	
+			var xScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 10);
+			var yScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 10);
+			var zScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 10);
+	
+			this.add(xScale);
+			this.add(yScale);
+			this.add(zScale);
+		}
+	
+		_createClass(ScaleObjectControl, [{
+			key: 'scaleObject',
+			value: function scaleObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
+				if (!object) return;
+	
+				var movePlaneNormal = this.findMovePlaneNormal(directionToMove);
+				var movePlane = _utilViewportHelperJs.ViewportHelper.CreatePlaneAtPoint(intersectedAxisPoint, movePlaneNormal);
+				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceBetween2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
+	
+				object.scale.add(delta);
+			}
+		}, {
+			key: 'findMovePlaneNormal',
+			value: function findMovePlaneNormal(direction) {
+				if (direction.equals(new _libThreeJs2['default'].Vector3(1, 0, 0)) || direction.equals(new _libThreeJs2['default'].Vector3(0, 1, 0))) return new _libThreeJs2['default'].Vector3(0, 0, 1);
+	
+				return new _libThreeJs2['default'].Vector3(0, 1, 0);
+			}
+		}]);
+	
+		return ScaleObjectControl;
+	})(_libThreeJs2['default'].Object3D);
+	
+	exports.ScaleObjectControl = ScaleObjectControl;
+
+/***/ },
+/* 36 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(37);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 37 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var eTransformMode = (function () {
+	  function eTransformMode() {
+	    _classCallCheck(this, eTransformMode);
+	  }
+	
+	  _createClass(eTransformMode, null, [{
+	    key: "Move",
+	    get: function get() {
+	      return 1;
+	    }
+	  }, {
+	    key: "Scale",
+	    get: function get() {
+	      return 2;
+	    }
+	  }, {
+	    key: "Rotate",
+	    get: function get() {
+	      return 3;
+	    }
+	  }]);
+	
+	  return eTransformMode;
+	})();
+	
+	exports.eTransformMode = eTransformMode;
+
+/***/ },
+/* 38 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(39);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -3619,14 +3866,14 @@
 	exports.SelectionHelper = SelectionHelper;
 
 /***/ },
-/* 32 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(33);
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(41);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 33 */
+/* 41 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -3667,14 +3914,14 @@
 	exports.eMouseButtons = eMouseButtons;
 
 /***/ },
-/* 34 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(35);
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(43);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 35 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';

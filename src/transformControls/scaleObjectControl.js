@@ -3,31 +3,27 @@ import { MoveAxisTransform } from './moveAxisTransform.js';
 import { ScaleAxisTransform } from './scaleAxisTransform.js';
 import { ViewportHelper} from '../util/viewportHelper.js'
 
-class MoveObjectControl extends THREE.Object3D {
+class ScaleObjectControl extends THREE.Object3D {
 	constructor() {
 		super();
 
-		let xArrow = new MoveAxisTransform(new THREE.Vector3(1, 0, 0), 0x00ff00, 10);
-		let yArrow = new MoveAxisTransform(new THREE.Vector3(0, 1, 0), 0xff0000, 10);
-		let zArrow = new MoveAxisTransform(new THREE.Vector3(0, 0, 1), 0x0000ff, 10);
+		let xScale = new ScaleAxisTransform(new THREE.Vector3(1, 0, 0), 0x00ff00, 10);
+		let yScale = new ScaleAxisTransform(new THREE.Vector3(0, 1, 0), 0xff0000, 10);
+		let zScale = new ScaleAxisTransform(new THREE.Vector3(0, 0, 1), 0x0000ff, 10);
 
-		xArrow.rotateArrow(new THREE.Vector3(0, 0, -1), Math.PI / 2);
-		zArrow.rotateArrow(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-
-		this.add(xArrow);
-		this.add(yArrow);
-		this.add(zArrow);
+		this.add(xScale);
+		this.add(yScale);
+		this.add(zScale);
 	}
 
-	moveObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
+	scaleObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
 		if (!object) return;
 
 		let movePlaneNormal = this.findMovePlaneNormal(directionToMove);
 		let movePlane = ViewportHelper.CreatePlaneAtPoint(intersectedAxisPoint, movePlaneNormal);
 		let delta = ViewportHelper.FindDifferenceBetween2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
 
-		object.position.add(delta);
-		this.position.add(delta);
+		object.scale.add(delta);
 	}
 
 	findMovePlaneNormal(direction) {
@@ -38,4 +34,4 @@ class MoveObjectControl extends THREE.Object3D {
 	}
 }
 
-export { MoveObjectControl };
+export { ScaleObjectControl };
