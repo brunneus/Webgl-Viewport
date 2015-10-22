@@ -29,6 +29,7 @@ class PanMouseController extends BaseMouseController {
 
 		this.lastMouseX = event.clientX;
 		this.lastMouseY = event.clientY;
+		environment.bringLightToCameraPosition();
 	}
 }
 

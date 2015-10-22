@@ -12,11 +12,12 @@ class Environment {
 		this.width = width;
 		this.height = height;
 		this.near = 0.1;
-		this.far = 1000;
+		this.far = 10000;
 		this.fov = 60;
 
 		this.initialize();
-		this.addDefaultEntities();
+		this.addFloor();
+		this.addLight();
 	}
 
 	initialize() {
@@ -24,9 +25,9 @@ class Environment {
 		this.scene = new THREE.Scene();
 
 		this.camera = new ViewportCamera(this.fov, aspectRatio, this.near, this.far);
-		this.camera.position.x = 15;
-		this.camera.position.y = 15;
-		this.camera.position.z = 15;
+		this.camera.position.x = 25;
+		this.camera.position.y = 25;
+		this.camera.position.z = 25;
 		this.camera.lookAt(new THREE.Vector3());
 
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -35,6 +36,7 @@ class Environment {
 		this.renderer.shadowMapSoft = true;
 		this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
 		this.renderer.setClearColor(0xc6c6c6);
+		this.renderer.domElement.setAttribute("tabindex", 0);
 		this.initializeControls();
 		this.disableContextMenu();
 		this.render();
@@ -59,6 +61,10 @@ class Environment {
 		this.renderer.domElement.addEventListener('mousewheel', (event) => {
 			mouseControllerManager.onMouseWheel(this, event);
 		});
+
+		this.renderer.domElement.addEventListener('keydown', (event) => {
+			mouseControllerManager.onKeydown(this, event);
+		});
 	}
 
 	disableContextMenu() {
@@ -82,27 +88,59 @@ class Environment {
 		this.renderer.setSize(this.width, this.height);
 	}
 
-	addDefaultEntities() {
-		this.addFloor();
-	}
-
 	addFloor() {
 		var size = 100;
 		var step = 5;
 
 		var gridHelper = new THREE.GridHelper(size, step);
 		gridHelper.setColors(0x000000, 0x999999);
+
 		this.scene.add(gridHelper);
+	}	
+
+	addLight() {
+		this.light = new THREE.DirectionalLight(0xffffff, 1, 0);
+		this.scene.add(this.light);
+		this.bringLightToCameraPosition();
 	}
 
 	createBox(width, height, depth) {
-		var geometry = new THREE.BoxGeometry(width, height, depth);
-		var material = new THREE.MeshBasicMaterial({ color: 0x999999 });
-		var box = new THREE.Mesh(geometry, material);
-		box.position.y = height / 2;
+		var boxGeometry = new THREE.BoxGeometry(width, height, depth);
+		this.addGeometryOnScene(boxGeometry, height);
+	}
 
-		this.scene.add(box);
-		addedObjects.push(box);
+	createCylinder(radiusTop, radiusBottom, height) {
+		var cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 50);
+		this.addGeometryOnScene(cylinderGeometry, height);
+	}
+	
+	createCone(height, width){
+		var coneGeometry = new THREE.CylinderGeometry(0, width, height, 50);
+		this.addGeometryOnScene(coneGeometry, height);
+	}
+	
+	createTorus(radius, tune, radialSegments, tubeSegments ){
+		var torusGeometry = new THREE.TorusGeometry(radius, tune, radialSegments, tubeSegments);
+		this.addGeometryOnScene(torusGeometry, radius * 2);
+	}
+	
+	createSphere(radius){
+		var sphereGeometry = new THREE.SphereGeometry(radius, 100, 100);
+		this.addGeometryOnScene(sphereGeometry, radius * 2);
+	}
+	
+	addGeometryOnScene(geometry, geometryHeight){
+		var material = new THREE.MeshPhongMaterial({ color: 0x999999 });
+		var mesh = new THREE.Mesh(geometry, material);
+
+		mesh.position.y = geometryHeight / 2;
+		
+		this.scene.add(mesh);
+		addedObjects.push(mesh);
+	}
+	
+	bringLightToCameraPosition(){
+		this.light.position.copy(this.camera.position);
 	}
 
 	getObjectsOnScene() {

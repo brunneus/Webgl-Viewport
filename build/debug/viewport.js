@@ -98,7 +98,7 @@
 	
 	var _mouseControlsMouseControllerManagerJs = __webpack_require__(8);
 	
-	var _floorJs = __webpack_require__(42);
+	var _floorJs = __webpack_require__(44);
 	
 	var _utilViewportHelperJs = __webpack_require__(16);
 	
@@ -113,11 +113,12 @@
 			this.width = width;
 			this.height = height;
 			this.near = 0.1;
-			this.far = 1000;
+			this.far = 10000;
 			this.fov = 60;
 	
 			this.initialize();
-			this.addDefaultEntities();
+			this.addFloor();
+			this.addLight();
 		}
 	
 		_createClass(Environment, [{
@@ -127,9 +128,9 @@
 				this.scene = new _libThreeJs2['default'].Scene();
 	
 				this.camera = new _viewportCameraJs.ViewportCamera(this.fov, aspectRatio, this.near, this.far);
-				this.camera.position.x = 15;
-				this.camera.position.y = 15;
-				this.camera.position.z = 15;
+				this.camera.position.x = 25;
+				this.camera.position.y = 25;
+				this.camera.position.z = 25;
 				this.camera.lookAt(new _libThreeJs2['default'].Vector3());
 	
 				this.renderer = new _libThreeJs2['default'].WebGLRenderer({ antialias: true });
@@ -138,6 +139,7 @@
 				this.renderer.shadowMapSoft = true;
 				this.renderer.shadowMapType = _libThreeJs2['default'].PCFSoftShadowMap;
 				this.renderer.setClearColor(0xc6c6c6);
+				this.renderer.domElement.setAttribute("tabindex", 0);
 				this.initializeControls();
 				this.disableContextMenu();
 				this.render();
@@ -163,6 +165,10 @@
 	
 				this.renderer.domElement.addEventListener('mousewheel', function (event) {
 					mouseControllerManager.onMouseWheel(_this, event);
+				});
+	
+				this.renderer.domElement.addEventListener('keydown', function (event) {
+					mouseControllerManager.onKeydown(_this, event);
 				});
 			}
 		}, {
@@ -197,11 +203,6 @@
 				this.renderer.setSize(this.width, this.height);
 			}
 		}, {
-			key: 'addDefaultEntities',
-			value: function addDefaultEntities() {
-				this.addFloor();
-			}
-		}, {
 			key: 'addFloor',
 			value: function addFloor() {
 				var size = 100;
@@ -209,18 +210,61 @@
 	
 				var gridHelper = new _libThreeJs2['default'].GridHelper(size, step);
 				gridHelper.setColors(0x000000, 0x999999);
+	
 				this.scene.add(gridHelper);
+			}
+		}, {
+			key: 'addLight',
+			value: function addLight() {
+				this.light = new _libThreeJs2['default'].DirectionalLight(0xffffff, 1, 0);
+				this.scene.add(this.light);
+				this.bringLightToCameraPosition();
 			}
 		}, {
 			key: 'createBox',
 			value: function createBox(width, height, depth) {
-				var geometry = new _libThreeJs2['default'].BoxGeometry(width, height, depth);
-				var material = new _libThreeJs2['default'].MeshBasicMaterial({ color: 0x999999 });
-				var box = new _libThreeJs2['default'].Mesh(geometry, material);
-				box.position.y = height / 2;
+				var boxGeometry = new _libThreeJs2['default'].BoxGeometry(width, height, depth);
+				this.addGeometryOnScene(boxGeometry, height);
+			}
+		}, {
+			key: 'createCylinder',
+			value: function createCylinder(radiusTop, radiusBottom, height) {
+				var cylinderGeometry = new _libThreeJs2['default'].CylinderGeometry(radiusTop, radiusBottom, height, 50);
+				this.addGeometryOnScene(cylinderGeometry, height);
+			}
+		}, {
+			key: 'createCone',
+			value: function createCone(height, width) {
+				var coneGeometry = new _libThreeJs2['default'].CylinderGeometry(0, width, height, 50);
+				this.addGeometryOnScene(coneGeometry, height);
+			}
+		}, {
+			key: 'createTorus',
+			value: function createTorus(radius, tune, radialSegments, tubeSegments) {
+				var torusGeometry = new _libThreeJs2['default'].TorusGeometry(radius, tune, radialSegments, tubeSegments);
+				this.addGeometryOnScene(torusGeometry, radius * 2);
+			}
+		}, {
+			key: 'createSphere',
+			value: function createSphere(radius) {
+				var sphereGeometry = new _libThreeJs2['default'].SphereGeometry(radius, 100, 100);
+				this.addGeometryOnScene(sphereGeometry, radius * 2);
+			}
+		}, {
+			key: 'addGeometryOnScene',
+			value: function addGeometryOnScene(geometry, geometryHeight) {
+				var material = new _libThreeJs2['default'].MeshPhongMaterial({ color: 0x999999 });
+				var mesh = new _libThreeJs2['default'].Mesh(geometry, material);
 	
-				this.scene.add(box);
-				addedObjects.push(box);
+				mesh.position.y = geometryHeight / 2;
+	
+				this.scene.add(mesh);
+				addedObjects.push(mesh);
+			}
+		}, {
+			key: 'bringLightToCameraPosition',
+			value: function bringLightToCameraPosition() {
+				this.light.position.copy(this.camera.position);
 			}
 		}, {
 			key: 'getObjectsOnScene',
@@ -2698,7 +2742,12 @@
 	
 	var _viewportMouseControllerJs = __webpack_require__(10);
 	
+	var _transformObjectMouseControllerJs = __webpack_require__(22);
+	
+	var _eMouseControllersJs = __webpack_require__(42);
+	
 	var instance = null;
+	var availableControllers = [];
 	
 	var MouseControllerManager = (function () {
 		function MouseControllerManager() {
@@ -2706,7 +2755,13 @@
 	
 			if (!instance) {
 				instance = this;
-				this.current = new _viewportMouseControllerJs.ViewportMouseController();
+				var viewportMouseController = new _viewportMouseControllerJs.ViewportMouseController();
+				var transformObjectMouseController = new _transformObjectMouseControllerJs.TransformObjectMouseController();
+	
+				this.currentControllers = [viewportMouseController, transformObjectMouseController];
+	
+				availableControllers[_eMouseControllersJs.eMouseControllers.ViewportMouseController] = viewportMouseController;
+				availableControllers[_eMouseControllersJs.eMouseControllers.TransformObjectMouseController] = transformObjectMouseController;
 			}
 	
 			return instance;
@@ -2715,22 +2770,78 @@
 		_createClass(MouseControllerManager, [{
 			key: 'onMouseUp',
 			value: function onMouseUp(environment, event) {
-				this.current.onMouseUp(environment, event);
+				var sortedByMouseUpPriority = this.currentControllers.sort(function (c1, c2) {
+					return c2.mouseUpPriority - c1.mouseUpPriority;
+				});
+	
+				sortedByMouseUpPriority.some(function (controller) {
+					controller.onMouseUp(environment, event);
+	
+					if (event.cancelBubble) return true;
+				});
+	
+				event.preventDefault();
 			}
 		}, {
 			key: 'onMouseMove',
 			value: function onMouseMove(environment, event) {
-				this.current.onMouseMove(environment, event);
+				var sortedByMouseMovePriority = this.currentControllers.sort(function (c1, c2) {
+					return c2.mouseMovePriority - c1.mouseMovePriority;
+				});
+	
+				sortedByMouseMovePriority.some(function (controller) {
+					controller.onMouseMove(environment, event);
+	
+					if (event.cancelBubble) return true;
+				});
+	
+				event.preventDefault();
 			}
 		}, {
 			key: 'onMouseDown',
 			value: function onMouseDown(environment, event) {
-				this.current.onMouseDown(environment, event);
+				var sortedByMouseDownPriority = this.currentControllers.sort(function (c1, c2) {
+					return c2.mouseDownPriority - c1.mouseDownPriority;
+				});
+	
+				sortedByMouseDownPriority.some(function (controller) {
+					controller.onMouseDown(environment, event);
+	
+					if (event.cancelBubble) return true;
+				});
+	
+				event.preventDefault();
 			}
 		}, {
 			key: 'onMouseWheel',
 			value: function onMouseWheel(environment, event) {
-				this.current.onMouseWheel(environment, event);
+				var sortedByMouseWheelPriority = this.currentControllers.sort(function (c1, c2) {
+					return c2.mouseWheelPriority - c1.mouseWheelPriority;
+				});
+	
+				sortedByMouseWheelPriority.some(function (controller) {
+					controller.onMouseWheel(environment, event);
+	
+					if (event.cancelBubble) return true;
+				});
+	
+				event.preventDefault();
+			}
+		}, {
+			key: 'onKeydown',
+			value: function onKeydown(environment, event) {
+				this.currentControllers.forEach(function (controller) {
+					controller.onKeydown(environment, event);
+	
+					if (event.cancelBubble) return;
+				});
+	
+				event.preventDefault();
+			}
+		}, {
+			key: 'getController',
+			value: function getController(mouseController) {
+				return availableControllers[mouseController];
 			}
 		}]);
 	
@@ -2759,9 +2870,13 @@
 	
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 	
 	var _libThreeJs = __webpack_require__(4);
 	
@@ -2779,16 +2894,23 @@
 	
 	var _eMouseButtonsJs = __webpack_require__(40);
 	
+	var _baseMouseControllerJs = __webpack_require__(14);
+	
 	var mouseDownPosition = new _libThreeJs2['default'].Vector2();
 	
-	var ViewportMouseController = (function () {
+	var ViewportMouseController = (function (_BaseMouseController) {
+		_inherits(ViewportMouseController, _BaseMouseController);
+	
 		function ViewportMouseController() {
 			_classCallCheck(this, ViewportMouseController);
 	
+			_get(Object.getPrototypeOf(ViewportMouseController.prototype), 'constructor', this).call(this);
 			this.orbitMouseController = new _orbitMouseControllerJs.OrbitMouseController();
 			this.zoomMouseController = new _zoomMouseControllerJs.ZoomMouseController();
 			this.panMouseController = new _panMouseControllerJs.PanMouseController();
-			this.transformObjectMouseController = new _transformObjectMouseControllerJs.TransformObjectMouseController();
+	
+			this.mouseUpPriority = 1;
+			this.mouseWheelPriority = 1;
 		}
 	
 		_createClass(ViewportMouseController, [{
@@ -2799,8 +2921,6 @@
 				if (mouseUpPosition.distanceTo(this.mouseDownPosition) == 0) {
 					environment.selectObjectUnderMouse(event);
 				}
-	
-				this.transformObjectMouseController.onMouseUp(environment, event);
 			}
 		}, {
 			key: 'onMouseDown',
@@ -2808,23 +2928,15 @@
 				this.mouseDownPosition = new _libThreeJs2['default'].Vector2(event.clientX, event.clientY);
 	
 				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
-					this.transformObjectMouseController.onMouseDown(environment, event);
 					this.panMouseController.onMouseDown(environment, event);
 				} else if (event.which == _eMouseButtonsJs.eMouseButtons.Middle) {
 					this.orbitMouseController.onMouseDown(environment, event);
 				}
-	
-				event.preventDefault();
 			}
 		}, {
 			key: 'onMouseMove',
 			value: function onMouseMove(environment, event) {
-	
 				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
-					this.transformObjectMouseController.onMouseMove(environment, event);
-	
-					if (event.cancelBubble) return;
-	
 					this.panMouseController.onMouseMove(environment, event);
 				} else if (event.which == _eMouseButtonsJs.eMouseButtons.Middle) {
 					this.orbitMouseController.onMouseMove(environment, event);
@@ -2832,14 +2944,13 @@
 			}
 		}, {
 			key: 'onMouseWheel',
-			value: function onMouseWheel(environemnt, event) {
-				this.zoomMouseController.onMouseWheel(environemnt, event);
-				event.preventDefault();
+			value: function onMouseWheel(environment, event) {
+				this.zoomMouseController.onMouseWheel(environment, event);
 			}
 		}]);
 	
 		return ViewportMouseController;
-	})();
+	})(_baseMouseControllerJs.BaseMouseController);
 	
 	exports.ViewportMouseController = ViewportMouseController;
 
@@ -2903,6 +3014,8 @@
 				var mouseIntersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
 	
 				if (mouseIntersection) this.target = mouseIntersection.point;else this.target = new _libThreeJs2['default'].Vector3();
+	
+				console.log(mouseIntersection);
 			}
 		}, {
 			key: 'onMouseMove',
@@ -2924,6 +3037,7 @@
 				this.lookAround(camera, xRotation, yRotation);
 	
 				camera.position.add(this.target);
+				environment.bringLightToCameraPosition();
 			}
 		}, {
 			key: 'lookAround',
@@ -2966,6 +3080,10 @@
 	var BaseMouseController = (function () {
 		function BaseMouseController() {
 			_classCallCheck(this, BaseMouseController);
+	
+			this.mouseUpPriority = 0;
+			this.mouseDownPriority = 0;
+			this.mouseMovePriority = 0;
 		}
 	
 		_createClass(BaseMouseController, [{
@@ -2980,6 +3098,9 @@
 		}, {
 			key: "onMouseWheel",
 			value: function onMouseWheel(environment, event) {}
+		}, {
+			key: "onKeydown",
+			value: function onKeydown(environment, event) {}
 		}]);
 	
 		return BaseMouseController;
@@ -3024,14 +3145,14 @@
 		_createClass(ViewportHelper, null, [{
 			key: 'GetMouseDirectionOnWorld',
 			value: function GetMouseDirectionOnWorld(x, y, camera, environment) {
-				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment.width, environment.height);
+				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment);
 				return mouseCoordinate.unproject(camera);
 			}
 		}, {
 			key: 'GetCloserIntersectionFromPoint',
 			value: function GetCloserIntersectionFromPoint(x, y, environment, objectsToIntersect) {
 				var camera = environment.camera;
-				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment.width, environment.height);
+				var mouseCoordinate = this.GetMouseProportionOnScreen(new _libThreeJs2['default'].Vector2(x, y), environment);
 	
 				mouseCoordinate.unproject(camera);
 	
@@ -3043,9 +3164,10 @@
 			}
 		}, {
 			key: 'GetMouseProportionOnScreen',
-			value: function GetMouseProportionOnScreen(screenCoordinate, width, height) {
-				var x = screenCoordinate.x / width * 2 - 1;
-				var y = -(screenCoordinate.y / height) * 2 + 1;
+			value: function GetMouseProportionOnScreen(screenCoordinate, environment) {
+				var rectBounds = environment.renderer.domElement.getBoundingClientRect();
+				var x = (screenCoordinate.x - rectBounds.left) / environment.width * 2 - 1;
+				var y = -((screenCoordinate.y - rectBounds.top) / environment.height) * 2 + 1;
 				var z = 0.5;
 	
 				return new _libThreeJs2['default'].Vector3(x, y, z);
@@ -3062,8 +3184,8 @@
 			value: function FindDifferenceBetween2DPointsOnPlane(p1, p2, plane, environment) {
 				var camera = environment.camera;
 	
-				var directionOfP1 = this.GetMouseProportionOnScreen(p1, environment.width, environment.height);
-				var directionOfP2 = this.GetMouseProportionOnScreen(p2, environment.width, environment.height);
+				var directionOfP1 = this.GetMouseProportionOnScreen(p1, environment);
+				var directionOfP2 = this.GetMouseProportionOnScreen(p2, environment);
 	
 				directionOfP1.unproject(camera).sub(camera.position).normalize();
 				directionOfP2.unproject(camera).sub(camera.position).normalize();
@@ -3148,6 +3270,7 @@
 	
 				camera.position.add(zoomDirection);
 				camera.updateMatrixWorld();
+				environment.bringLightToCameraPosition();
 			}
 		}]);
 	
@@ -3222,6 +3345,7 @@
 	
 				this.lastMouseX = event.clientX;
 				this.lastMouseY = event.clientY;
+				environment.bringLightToCameraPosition();
 			}
 		}]);
 	
@@ -3249,9 +3373,13 @@
 	
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 	
 	var _libThreeJs = __webpack_require__(4);
 	
@@ -3265,27 +3393,37 @@
 	
 	var _utilSelectionHelperJs = __webpack_require__(38);
 	
-	var TransformObjectMouseController = (function () {
+	var _transformControlsETransformModeJs = __webpack_require__(36);
+	
+	var _eMouseButtonsJs = __webpack_require__(40);
+	
+	var TransformObjectMouseController = (function (_BaseMouseController) {
+		_inherits(TransformObjectMouseController, _BaseMouseController);
+	
 		function TransformObjectMouseController() {
 			_classCallCheck(this, TransformObjectMouseController);
 	
+			_get(Object.getPrototypeOf(TransformObjectMouseController.prototype), 'constructor', this).call(this);
+	
 			this.transformObjectControl = new _transformControlsTransformObjectControlJs.TransformObjectControl();
+			this.mouseMovePriority = 1;
 		}
 	
 		_createClass(TransformObjectMouseController, [{
 			key: 'onMouseDown',
 			value: function onMouseDown(environment, event) {
-				this.isMousePressed = true;
-				this.lastMousePosition = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY);
-				this.intersection = this.transformObjectControl.getIntersection(event.clientX, event.clientY, environment);
+				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
 	
-				event.cancelBubble = this.intersection;
+					this.isMousePressed = true;
+					this.lastMousePosition = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY);
+					this.intersection = this.transformObjectControl.getIntersection(event.clientX, event.clientY, environment);
+				}
 			}
 		}, {
 			key: 'onMouseUp',
 			value: function onMouseUp(environment, event) {
 				var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
-				this.transformObjectControl.showCurrentControls(selectedObject, environment.scene);
+				this.transformObjectControl.showCurrentControls(selectedObject, environment.scene, environment.camera);
 				this.isMousePressed = false;
 			}
 		}, {
@@ -3294,21 +3432,46 @@
 				var currentPosition = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY);
 				var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
 	
-				if (this.isMousePressed && this.intersection && selectedObject) {
-					var intersectedAxis = this.intersection.object.parent;
-					var intersectedAxisPoint = this.intersection.point;
-					var intersectedAxisDirection = intersectedAxis.normal;
+				if (selectedObject) {
+					this.transformObjectControl.adjustSizeBasedOnSelectedObject(environment.camera, selectedObject);
 	
-					this.transformObjectControl.transform(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
-					event.cancelBubble = true;
+					if (this.isMousePressed && this.intersection) {
+						var intersectedAxis = this.intersection.object.parent;
+						var intersectedAxisPoint = this.intersection.point;
+						var intersectedAxisDirection = intersectedAxis.normal;
+	
+						this.transformObjectControl.transform(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
+						event.cancelBubble = true;
+					}
 				}
 	
 				this.lastMousePosition = currentPosition;
 			}
+		}, {
+			key: 'onKeydown',
+			value: function onKeydown(environment, event) {
+				var mKeyCode = 77;
+				var sKeyCode = 83;
+				var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
+	
+				if (event.keyCode === mKeyCode) this.transformObjectControl.changeCurrentMode(_transformControlsETransformModeJs.eTransformMode.Move, environment.scene, selectedObject);else if (event.keyCode === sKeyCode) this.transformObjectControl.changeCurrentMode(_transformControlsETransformModeJs.eTransformMode.Scale, environment.scene, selectedObject);
+	
+				this.transformObjectControl.adjustSizeBasedOnSelectedObject(environment.camera, selectedObject);
+			}
+		}, {
+			key: 'onMouseWheel',
+			value: function onMouseWheel(environment, event) {
+				var camera = environment.camera;
+				var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
+	
+				if (selectedObject) {
+					this.transformObjectControl.adjustSizeBasedOnSelectedObject(camera, selectedObject);
+				}
+			}
 		}]);
 	
 		return TransformObjectMouseController;
-	})();
+	})(_baseMouseControllerJs.BaseMouseController);
 	
 	exports.TransformObjectMouseController = TransformObjectMouseController;
 
@@ -3347,6 +3510,8 @@
 	
 	var _eTransformModeJs = __webpack_require__(36);
 	
+	var _utilSelectionHelperJs = __webpack_require__(38);
+	
 	var TransformObjectControl = (function () {
 		function TransformObjectControl() {
 			_classCallCheck(this, TransformObjectControl);
@@ -3356,9 +3521,6 @@
 	
 			this.currentMode = _eTransformModeJs.eTransformMode.Move;
 			this.currentControl = this.moveObjectControl;
-	
-			this.currentMode = _eTransformModeJs.eTransformMode.Scale;
-			this.currentControl = this.scaleObjectControl;
 		}
 	
 		_createClass(TransformObjectControl, [{
@@ -3369,33 +3531,52 @@
 			}
 		}, {
 			key: 'showCurrentControls',
-			value: function showCurrentControls(object, scene) {
+			value: function showCurrentControls(object, scene, camera) {
 				scene.remove(this.currentControl);
 	
 				if (object) {
-					this.currentControl.position.copy(object.position);
-					scene.add(this.currentControl);
+					this.adjustSizeBasedOnSelectedObject(camera, object);
+					this.attachCurrentControls(object, scene);
 				}
 			}
 		}, {
 			key: 'transform',
 			value: function transform(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
-				if (this.currentMode == _eTransformModeJs.eTransformMode.Move) {
-					this.moveObjectControl.moveObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);
-				} else {
-					this.scaleObjectControl.scaleObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);
-				}
+				if (this.currentMode == _eTransformModeJs.eTransformMode.Move) this.moveObjectControl.moveObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);else this.scaleObjectControl.scaleObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);
+	
+				this.adjustSizeBasedOnSelectedObject(environment.camera, object);
 			}
 		}, {
 			key: 'changeCurrentMode',
 			value: function changeCurrentMode(transformMode, scene, object) {
 				if (this.currentMode === transformMode) return;
 	
+				scene.remove(this.currentControl);
+	
 				this.currentMode = transformMode;
 	
 				if (this.currentMode === _eTransformModeJs.eTransformMode.Move) this.currentControl = this.moveObjectControl;else this.currentControl = this.scaleObjectControl;
 	
-				this.showCurrentControls(scene, object);
+				this.attachCurrentControls(object, scene, object);
+			}
+		}, {
+			key: 'attachCurrentControls',
+			value: function attachCurrentControls(object, scene) {
+				if (object) {
+					this.currentControl.position.copy(object.position);
+					scene.add(this.currentControl);
+				}
+			}
+		}, {
+			key: 'adjustSizeBasedOnSelectedObject',
+			value: function adjustSizeBasedOnSelectedObject(camera, selectedObject) {
+				var cameraToSelectedObjectDistance = camera.position.distanceTo(selectedObject.position);
+				var delta = new _libThreeJs2['default'].Vector3(cameraToSelectedObjectDistance, cameraToSelectedObjectDistance, cameraToSelectedObjectDistance);
+				delta.multiplyScalar(0.04);
+	
+				this.currentControl.scale.x = delta.x;
+				this.currentControl.scale.y = delta.y;
+				this.currentControl.scale.z = delta.z;
 			}
 		}]);
 	
@@ -3449,9 +3630,9 @@
 	
 			_get(Object.getPrototypeOf(MoveObjectControl.prototype), 'constructor', this).call(this);
 	
-			var xArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 10);
-			var yArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 10);
-			var zArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 10);
+			var xArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 6);
+			var yArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 6);
+			var zArrow = new _moveAxisTransformJs.MoveAxisTransform(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 6);
 	
 			xArrow.rotateArrow(new _libThreeJs2['default'].Vector3(0, 0, -1), Math.PI / 2);
 			zArrow.rotateArrow(new _libThreeJs2['default'].Vector3(1, 0, 0), Math.PI / 2);
@@ -3715,6 +3896,8 @@
 	
 	var _utilViewportHelperJs = __webpack_require__(16);
 	
+	var SCALE_FACTOR = .6;
+	
 	var ScaleObjectControl = (function (_THREE$Object3D) {
 		_inherits(ScaleObjectControl, _THREE$Object3D);
 	
@@ -3723,9 +3906,9 @@
 	
 			_get(Object.getPrototypeOf(ScaleObjectControl.prototype), 'constructor', this).call(this);
 	
-			var xScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 10);
-			var yScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 10);
-			var zScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 10);
+			var xScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(1, 0, 0), 0x00ff00, 6);
+			var yScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(0, 1, 0), 0xff0000, 6);
+			var zScale = new _scaleAxisTransformJs.ScaleAxisTransform(new _libThreeJs2['default'].Vector3(0, 0, 1), 0x0000ff, 6);
 	
 			this.add(xScale);
 			this.add(yScale);
@@ -3740,6 +3923,7 @@
 				var movePlaneNormal = this.findMovePlaneNormal(directionToMove);
 				var movePlane = _utilViewportHelperJs.ViewportHelper.CreatePlaneAtPoint(intersectedAxisPoint, movePlaneNormal);
 				var delta = _utilViewportHelperJs.ViewportHelper.FindDifferenceBetween2DPointsOnPlane(originPoint, targetPoint, movePlane, environment).multiply(directionToMove).negate();
+				delta.multiplyScalar(SCALE_FACTOR);
 	
 				object.scale.add(delta);
 			}
@@ -3922,6 +4106,49 @@
 
 /***/ },
 /* 43 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var eMouseControllers = (function () {
+	  function eMouseControllers() {
+	    _classCallCheck(this, eMouseControllers);
+	  }
+	
+	  _createClass(eMouseControllers, null, [{
+	    key: "ViewportMouseController",
+	    get: function get() {
+	      return 1;
+	    }
+	  }, {
+	    key: "TransformObjectMouseController",
+	    get: function get() {
+	      return 2;
+	    }
+	  }]);
+	
+	  return eMouseControllers;
+	})();
+	
+	exports.eMouseControllers = eMouseControllers;
+
+/***/ },
+/* 44 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global["VIEWPORT"] = __webpack_require__(45);
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';

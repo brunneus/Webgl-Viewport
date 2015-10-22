@@ -30,6 +30,7 @@ class ZoomMouseController extends BaseMouseController {
 
 		camera.position.add(zoomDirection);
 		camera.updateMatrixWorld();
+		environment.bringLightToCameraPosition();
 	}
 }
 

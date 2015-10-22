@@ -24,6 +24,8 @@ class OrbitMouseController extends BaseMouseController {
 			this.target = mouseIntersection.point;
 		else
 			this.target = new THREE.Vector3();
+			
+		console.log(mouseIntersection);
 	}
 
 	onMouseMove(environment, event) {
@@ -44,6 +46,7 @@ class OrbitMouseController extends BaseMouseController {
 		this.lookAround(camera, xRotation, yRotation);
 
 		camera.position.add(this.target);
+		environment.bringLightToCameraPosition();
 	}
 
 	lookAround(camera, xRotation, yRotation) {

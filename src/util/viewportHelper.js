@@ -7,13 +7,13 @@ class ViewportHelper {
 	}
 
 	static GetMouseDirectionOnWorld(x, y, camera, environment) {
-		let mouseCoordinate = this.GetMouseProportionOnScreen(new THREE.Vector2(x, y), environment.width, environment.height);
+		let mouseCoordinate = this.GetMouseProportionOnScreen(new THREE.Vector2(x, y), environment);
 		return mouseCoordinate.unproject(camera);
 	}
 
 	static GetCloserIntersectionFromPoint(x, y, environment, objectsToIntersect) {
 		let camera = environment.camera;
-		let mouseCoordinate = this.GetMouseProportionOnScreen(new THREE.Vector2(x, y), environment.width, environment.height);
+		let mouseCoordinate = this.GetMouseProportionOnScreen(new THREE.Vector2(x, y), environment);
 
 		mouseCoordinate.unproject(camera);
 
@@ -24,9 +24,10 @@ class ViewportHelper {
 		return intersections[0];
 	}
 
-	static GetMouseProportionOnScreen(screenCoordinate, width, height) {
-		let x = (screenCoordinate.x / width) * 2 - 1;
-		let y = -(screenCoordinate.y / height) * 2 + 1;
+	static GetMouseProportionOnScreen(screenCoordinate, environment) {
+		let rectBounds = environment.renderer.domElement.getBoundingClientRect();
+		let x = ((screenCoordinate.x - rectBounds.left) / environment.width) * 2 - 1;
+		let y = -((screenCoordinate.y - rectBounds.top) / environment.height) * 2 + 1;
 		let z = 0.5;
 
 		return new THREE.Vector3(x, y, z);
@@ -41,8 +42,8 @@ class ViewportHelper {
 	static FindDifferenceBetween2DPointsOnPlane(p1, p2, plane, environment) {
 		let  camera = environment.camera;
 		
-		let directionOfP1 = this.GetMouseProportionOnScreen(p1, environment.width, environment.height);
-		let directionOfP2 = this.GetMouseProportionOnScreen(p2, environment.width, environment.height);
+		let directionOfP1 = this.GetMouseProportionOnScreen(p1, environment);
+		let directionOfP2 = this.GetMouseProportionOnScreen(p2, environment);
 
 		directionOfP1.unproject(camera).sub(camera.position).normalize();
 		directionOfP2.unproject(camera).sub(camera.position).normalize();

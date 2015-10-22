@@ -7,9 +7,9 @@ class MoveObjectControl extends THREE.Object3D {
 	constructor() {
 		super();
 
-		let xArrow = new MoveAxisTransform(new THREE.Vector3(1, 0, 0), 0x00ff00, 10);
-		let yArrow = new MoveAxisTransform(new THREE.Vector3(0, 1, 0), 0xff0000, 10);
-		let zArrow = new MoveAxisTransform(new THREE.Vector3(0, 0, 1), 0x0000ff, 10);
+		let xArrow = new MoveAxisTransform(new THREE.Vector3(1, 0, 0), 0x00ff00, 6);
+		let yArrow = new MoveAxisTransform(new THREE.Vector3(0, 1, 0), 0xff0000, 6);
+		let zArrow = new MoveAxisTransform(new THREE.Vector3(0, 0, 1), 0x0000ff, 6);
 
 		xArrow.rotateArrow(new THREE.Vector3(0, 0, -1), Math.PI / 2);
 		zArrow.rotateArrow(new THREE.Vector3(1, 0, 0), Math.PI / 2);
