@@ -16,7 +16,6 @@ class TransformObjectMouseController extends BaseMouseController {
 
 	onMouseDown(environment, event) {
 		if (event.which == eMouseButtons.Left) {
-
 			this.isMousePressed = true;
 			this.lastMousePosition = new THREE.Vector3(event.clientX, event.clientY);
 			this.intersection = this.transformObjectControl.getIntersection(event.clientX, event.clientY, environment);
@@ -52,12 +51,20 @@ class TransformObjectMouseController extends BaseMouseController {
 	onKeydown(environment, event) {
 		let mKeyCode = 77;
 		let sKeyCode = 83;
+		let deleteKeyCode = 46;
 		let selectedObject = SelectionHelper.getSelectedObject();
 
-		if (event.keyCode === mKeyCode)
+		if (event.keyCode === mKeyCode) {
 			this.transformObjectControl.changeCurrentMode(eTransformMode.Move, environment.scene, selectedObject);
-		else if (event.keyCode === sKeyCode)
+		}
+		else if (event.keyCode === sKeyCode) {
 			this.transformObjectControl.changeCurrentMode(eTransformMode.Scale, environment.scene, selectedObject);
+		}
+		else if (event.keyCode === deleteKeyCode) {
+			environment.removeObject(selectedObject);
+			this.transformObjectControl.removeCurrentControls(environment.scene);
+			SelectionHelper.removeSelection(environment.scene);
+		}
 
 		this.transformObjectControl.adjustSizeBasedOnSelectedObject(environment.camera, selectedObject);
 	}

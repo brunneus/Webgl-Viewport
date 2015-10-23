@@ -1,6 +1,7 @@
 import THREE from '../../lib/three.js';
 
 let selectedObject;
+let selectionBox;
 
 class SelectionHelper {
 	constructor() {
@@ -9,16 +10,21 @@ class SelectionHelper {
 	
 	static getSelectedObject(){
 		return selectedObject
-	} 
+	}
+	
+	static removeSelection(scene){
+		scene.remove(selectionBox);
+		selectedObject = null;
+	}
 
 	static selectObject(object, scene) {
-		scene.remove(this.selectedObject);
+		scene.remove(selectionBox);
 
 		if (object) {
-			this.selectedObject = new THREE.BoxHelper(object);
-			this.selectedObject.renderOrder = 1;		
-			this.selectedObject.material.depthTest = false;
-			scene.add(this.selectedObject);
+			selectionBox = new THREE.BoxHelper(object);
+			selectionBox.renderOrder = 1;		
+			selectionBox.material.depthTest = false;
+			scene.add(selectionBox);
 		}
 
 		selectedObject = object;

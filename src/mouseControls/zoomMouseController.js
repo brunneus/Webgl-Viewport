@@ -12,7 +12,7 @@ class ZoomMouseController extends BaseMouseController {
 
 	onMouseWheel(environment, event) {
 		var camera = environment.camera;
-		var intersection = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
+		var intersection = ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.getObjectsOnScene());
 		var worldPosition = new THREE.Vector3(0, 0, 0);
 		var factor = 0;
 

@@ -27,6 +27,10 @@ class TransformObjectControl {
 			this.attachCurrentControls(object, scene);			
 		}
 	}
+	
+	removeCurrentControls(scene){
+		scene.remove(this.currentControl);
+	}
 
 	transform(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
 		if (this.currentMode == eTransformMode.Move) 

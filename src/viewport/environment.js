@@ -36,7 +36,7 @@ class Environment {
 		this.renderer.shadowMapSoft = true;
 		this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
 		this.renderer.setClearColor(0xc6c6c6);
-		this.renderer.domElement.setAttribute("tabindex", 0);
+		this.renderer.domElement.focus();
 		this.initializeControls();
 		this.disableContextMenu();
 		this.render();
@@ -62,7 +62,7 @@ class Environment {
 			mouseControllerManager.onMouseWheel(this, event);
 		});
 
-		this.renderer.domElement.addEventListener('keydown', (event) => {
+		document.addEventListener('keydown', (event) => {
 			mouseControllerManager.onKeydown(this, event);
 		});
 	}
@@ -96,7 +96,7 @@ class Environment {
 		gridHelper.setColors(0x000000, 0x999999);
 
 		this.scene.add(gridHelper);
-	}	
+	}
 
 	addLight() {
 		this.light = new THREE.DirectionalLight(0xffffff, 1, 0);
@@ -113,38 +113,46 @@ class Environment {
 		var cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 50);
 		this.addGeometryOnScene(cylinderGeometry, height);
 	}
-	
-	createCone(height, width){
+
+	createCone(height, width) {
 		var coneGeometry = new THREE.CylinderGeometry(0, width, height, 50);
 		this.addGeometryOnScene(coneGeometry, height);
 	}
-	
-	createTorus(radius, tune, radialSegments, tubeSegments ){
+
+	createTorus(radius, tune, radialSegments, tubeSegments) {
 		var torusGeometry = new THREE.TorusGeometry(radius, tune, radialSegments, tubeSegments);
 		this.addGeometryOnScene(torusGeometry, radius * 2);
 	}
-	
-	createSphere(radius){
+
+	createSphere(radius) {
 		var sphereGeometry = new THREE.SphereGeometry(radius, 100, 100);
 		this.addGeometryOnScene(sphereGeometry, radius * 2);
 	}
-	
-	addGeometryOnScene(geometry, geometryHeight){
+
+	addGeometryOnScene(geometry, geometryHeight) {
 		var material = new THREE.MeshPhongMaterial({ color: 0x999999 });
 		var mesh = new THREE.Mesh(geometry, material);
 
 		mesh.position.y = geometryHeight / 2;
-		
+
 		this.scene.add(mesh);
 		addedObjects.push(mesh);
 	}
-	
-	bringLightToCameraPosition(){
+
+	bringLightToCameraPosition() {
 		this.light.position.copy(this.camera.position);
 	}
 
 	getObjectsOnScene() {
 		return addedObjects;
+	}
+
+	removeObject(object) {
+		if (object) {
+			this.scene.remove(object);
+			let index = addedObjects.indexOf(object);
+			addedObjects.slice(index, 1);
+		}
 	}
 
 	selectObjectUnderMouse(event) {

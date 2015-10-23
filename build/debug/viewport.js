@@ -139,7 +139,7 @@
 				this.renderer.shadowMapSoft = true;
 				this.renderer.shadowMapType = _libThreeJs2['default'].PCFSoftShadowMap;
 				this.renderer.setClearColor(0xc6c6c6);
-				this.renderer.domElement.setAttribute("tabindex", 0);
+				this.renderer.domElement.focus();
 				this.initializeControls();
 				this.disableContextMenu();
 				this.render();
@@ -167,7 +167,7 @@
 					mouseControllerManager.onMouseWheel(_this, event);
 				});
 	
-				this.renderer.domElement.addEventListener('keydown', function (event) {
+				document.addEventListener('keydown', function (event) {
 					mouseControllerManager.onKeydown(_this, event);
 				});
 			}
@@ -270,6 +270,15 @@
 			key: 'getObjectsOnScene',
 			value: function getObjectsOnScene() {
 				return addedObjects;
+			}
+		}, {
+			key: 'removeObject',
+			value: function removeObject(object) {
+				if (object) {
+					this.scene.remove(object);
+					var index = addedObjects.indexOf(object);
+					addedObjects.slice(index, 1);
+				}
 			}
 		}, {
 			key: 'selectObjectUnderMouse',
@@ -3253,7 +3262,7 @@
 			key: 'onMouseWheel',
 			value: function onMouseWheel(environment, event) {
 				var camera = environment.camera;
-				var intersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.scene.children);
+				var intersection = _utilViewportHelperJs.ViewportHelper.GetCloserIntersectionFromPoint(event.clientX, event.clientY, environment, environment.getObjectsOnScene());
 				var worldPosition = new _libThreeJs2['default'].Vector3(0, 0, 0);
 				var factor = 0;
 	
@@ -3413,7 +3422,6 @@
 			key: 'onMouseDown',
 			value: function onMouseDown(environment, event) {
 				if (event.which == _eMouseButtonsJs.eMouseButtons.Left) {
-	
 					this.isMousePressed = true;
 					this.lastMousePosition = new _libThreeJs2['default'].Vector3(event.clientX, event.clientY);
 					this.intersection = this.transformObjectControl.getIntersection(event.clientX, event.clientY, environment);
@@ -3452,9 +3460,18 @@
 			value: function onKeydown(environment, event) {
 				var mKeyCode = 77;
 				var sKeyCode = 83;
+				var deleteKeyCode = 46;
 				var selectedObject = _utilSelectionHelperJs.SelectionHelper.getSelectedObject();
 	
-				if (event.keyCode === mKeyCode) this.transformObjectControl.changeCurrentMode(_transformControlsETransformModeJs.eTransformMode.Move, environment.scene, selectedObject);else if (event.keyCode === sKeyCode) this.transformObjectControl.changeCurrentMode(_transformControlsETransformModeJs.eTransformMode.Scale, environment.scene, selectedObject);
+				if (event.keyCode === mKeyCode) {
+					this.transformObjectControl.changeCurrentMode(_transformControlsETransformModeJs.eTransformMode.Move, environment.scene, selectedObject);
+				} else if (event.keyCode === sKeyCode) {
+					this.transformObjectControl.changeCurrentMode(_transformControlsETransformModeJs.eTransformMode.Scale, environment.scene, selectedObject);
+				} else if (event.keyCode === deleteKeyCode) {
+					environment.removeObject(selectedObject);
+					this.transformObjectControl.removeCurrentControls(environment.scene);
+					_utilSelectionHelperJs.SelectionHelper.removeSelection(environment.scene);
+				}
 	
 				this.transformObjectControl.adjustSizeBasedOnSelectedObject(environment.camera, selectedObject);
 			}
@@ -3538,6 +3555,11 @@
 					this.adjustSizeBasedOnSelectedObject(camera, object);
 					this.attachCurrentControls(object, scene);
 				}
+			}
+		}, {
+			key: 'removeCurrentControls',
+			value: function removeCurrentControls(scene) {
+				scene.remove(this.currentControl);
 			}
 		}, {
 			key: 'transform',
@@ -4017,6 +4039,7 @@
 	var _libThreeJs2 = _interopRequireDefault(_libThreeJs);
 	
 	var selectedObject = undefined;
+	var selectionBox = undefined;
 	
 	var SelectionHelper = (function () {
 		function SelectionHelper() {
@@ -4029,15 +4052,21 @@
 				return selectedObject;
 			}
 		}, {
+			key: 'removeSelection',
+			value: function removeSelection(scene) {
+				scene.remove(selectionBox);
+				selectedObject = null;
+			}
+		}, {
 			key: 'selectObject',
 			value: function selectObject(object, scene) {
-				scene.remove(this.selectedObject);
+				scene.remove(selectionBox);
 	
 				if (object) {
-					this.selectedObject = new _libThreeJs2['default'].BoxHelper(object);
-					this.selectedObject.renderOrder = 1;
-					this.selectedObject.material.depthTest = false;
-					scene.add(this.selectedObject);
+					selectionBox = new _libThreeJs2['default'].BoxHelper(object);
+					selectionBox.renderOrder = 1;
+					selectionBox.material.depthTest = false;
+					scene.add(selectionBox);
 				}
 	
 				selectedObject = object;

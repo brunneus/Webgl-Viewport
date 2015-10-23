@@ -52,7 +52,7 @@ class MouseControllerManager {
 			controller.onMouseDown(environment, event);
 			
 			if (event.cancelBubble) return true;
-		});	
+		});
 		
 		event.preventDefault();
 	}
@@ -75,8 +75,8 @@ class MouseControllerManager {
 			
 			if (event.cancelBubble) return;
 		});	
-		
-		event.preventDefault();
+				
+		event.preventDefault();		
 	}
 	
 	getController(mouseController){
