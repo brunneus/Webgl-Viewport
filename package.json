@@ -1,0 +1,27 @@
+{
+  "name": "viewport",
+  "version": "1.0.0",
+  "description": "3d engine",
+  "main": "index.js",
+  "author": "bruno maschio joaquim",
+  "license": "ISC",
+  "scripts": {
+    "build-debug": "webpack --colors --progress",
+    "build-deploy": "webpack --colors --progress --config webpack.production.config.js",
+    "watch": "webpack --colors --progress -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://tgcandido@bitbucket.org/monstraumdos3d/balasso.git"
+  },
+  "keywords": [
+    "engine"
+  ],
+  "devDependencies": {
+    "babel-loader": "^5.3.2",
+    "browser-sync": "^2.9.3",
+    "expose-loader": "^0.7.0",
+    "gulp": "^3.9.0",
+    "webpack": "^1.12.1"
+  }
+}
