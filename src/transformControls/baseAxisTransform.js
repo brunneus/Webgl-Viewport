@@ -21,7 +21,12 @@ class BaseAxisTransform extends THREE.Object3D {
 	}
 
 	getNormal() {
-		return this.normal();
+		var normalAsVector4 = new THREE.Vector4(this.normal.x, this.normal.y, this.normal.z, 0);
+		var rotation = new THREE.Matrix4();
+		this.matrixWorld.extractRotation(rotation);
+		
+		var adjustedWithWorldMatrix = normalAsVector4.applyMatrix4(this.matrixWorld);
+		return new THREE.Vector3(adjustedWithWorldMatrix.x, adjustedWithWorldMatrix.y, adjustedWithWorldMatrix.z).normalize();
 	}
 }
 

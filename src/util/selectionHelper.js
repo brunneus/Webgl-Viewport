@@ -21,7 +21,7 @@ class SelectionHelper {
 		scene.remove(selectionBox);
 
 		if (object) {
-			selectionBox = new THREE.BoxHelper(object);
+			selectionBox = new THREE.BoxHelper(object, 0xffffff);
 			selectionBox.renderOrder = 1;		
 			selectionBox.material.depthTest = false;
 			scene.add(selectionBox);

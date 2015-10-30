@@ -17,7 +17,7 @@ class TransformObjectMouseController extends BaseMouseController {
 	onMouseDown(environment, event) {
 		if (event.which == eMouseButtons.Left) {
 			this.isMousePressed = true;
-			this.lastMousePosition = new THREE.Vector3(event.clientX, event.clientY);
+			this.lastMousePosition = new THREE.Vector3(event.clientX, event.clientY, 0);
 			this.intersection = this.transformObjectControl.getIntersection(event.clientX, event.clientY, environment);
 		}
 	}
@@ -29,18 +29,17 @@ class TransformObjectMouseController extends BaseMouseController {
 	}
 
 	onMouseMove(environment, event) {
-		let currentPosition = new THREE.Vector3(event.clientX, event.clientY);
+		let currentPosition = new THREE.Vector3(event.clientX, event.clientY, 0);
 		let selectedObject = SelectionHelper.getSelectedObject();
 
 		if (selectedObject) {
 			this.transformObjectControl.adjustSizeBasedOnSelectedObject(environment.camera, selectedObject);
 
 			if (this.isMousePressed && this.intersection) {
-				let intersectedAxis = this.intersection.object.parent;
-				let intersectedAxisPoint = this.intersection.point;
-				let intersectedAxisDirection = intersectedAxis.normal;
+				var plane = ViewportHelper.CreatePlaneAtPoint(this.intersection.point, environment.camera.gaze);
+				var delta = ViewportHelper.FindDifferenceBetween2DPointsOnPlane(currentPosition, this.lastMousePosition, plane, environment);
 
-				this.transformObjectControl.transform(this.lastMousePosition, currentPosition, selectedObject, environment, intersectedAxisDirection, intersectedAxisPoint);
+				this.transformObjectControl.transform(selectedObject, delta, environment, this.intersection);
 				event.cancelBubble = true;
 			}
 		}
@@ -51,6 +50,7 @@ class TransformObjectMouseController extends BaseMouseController {
 	onKeydown(environment, event) {
 		let mKeyCode = 77;
 		let sKeyCode = 83;
+		let rKeyCode = 82;
 		let deleteKeyCode = 46;
 		let selectedObject = SelectionHelper.getSelectedObject();
 
@@ -59,6 +59,9 @@ class TransformObjectMouseController extends BaseMouseController {
 		}
 		else if (event.keyCode === sKeyCode) {
 			this.transformObjectControl.changeCurrentMode(eTransformMode.Scale, environment.scene, selectedObject);
+		}
+		else if (event.keyCode === rKeyCode) {
+			this.transformObjectControl.changeCurrentMode(eTransformMode.Rotate, environment.scene, selectedObject);
 		}
 		else if (event.keyCode === deleteKeyCode) {
 			environment.removeObject(selectedObject);

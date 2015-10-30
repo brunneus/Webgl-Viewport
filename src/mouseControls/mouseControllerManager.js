@@ -17,7 +17,7 @@ class MouseControllerManager {
 			availableControllers[eMouseControllers.ViewportMouseController] = viewportMouseController;
 			availableControllers[eMouseControllers.TransformObjectMouseController] = transformObjectMouseController;
         }
-
+		
         return instance;
     }
 

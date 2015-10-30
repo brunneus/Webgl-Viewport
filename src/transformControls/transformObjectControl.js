@@ -1,17 +1,19 @@
 import THREE from '../../lib/three.js';
 import { ViewportHelper} from '../util/viewportHelper.js'
-import { MoveObjectControl } from './moveObjectControl.js'
-import { ScaleObjectControl } from './scaleObjectControl.js'
+import { GizmoMoveControl } from './gizmoMoveControl.js'
+import { GizmoScaleControl } from './gizmoScaleControl.js'
 import { eTransformMode } from './eTransformMode.js'
 import { SelectionHelper } from '../util/selectionHelper.js'
+import { GizmoRotateControl } from './gizmoRotateControl.js';
 
 class TransformObjectControl {
 	constructor() {
-		this.moveObjectControl = new MoveObjectControl();
-		this.scaleObjectControl = new ScaleObjectControl();
+		this.moveControl = new GizmoMoveControl();
+		this.scaleControl = new GizmoScaleControl();
+		this.rotateControl = new GizmoRotateControl();
 
 		this.currentMode = eTransformMode.Move;
-		this.currentControl = this.moveObjectControl;
+		this.currentControl = this.moveControl;
 	}
 
 	getIntersection(x, y, environment) {
@@ -21,23 +23,19 @@ class TransformObjectControl {
 
 	showCurrentControls(object, scene, camera) {
 		scene.remove(this.currentControl);
-		
-		if(object){
+
+		if (object) {
 			this.adjustSizeBasedOnSelectedObject(camera, object);
-			this.attachCurrentControls(object, scene);			
+			this.attachCurrentControls(object, scene);
 		}
 	}
-	
-	removeCurrentControls(scene){
+
+	removeCurrentControls(scene) {
 		scene.remove(this.currentControl);
 	}
 
-	transform(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint) {
-		if (this.currentMode == eTransformMode.Move) 
-			this.moveObjectControl.moveObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);		
-		else 
-			this.scaleObjectControl.scaleObject(originPoint, targetPoint, object, environment, directionToMove, intersectedAxisPoint);		
-		
+	transform(object, delta, environment, intersectionWithGizmoObject) {
+		this.currentControl.transform(object, delta, environment, intersectionWithGizmoObject)
 		this.adjustSizeBasedOnSelectedObject(environment.camera, object);
 	}
 
@@ -49,16 +47,18 @@ class TransformObjectControl {
 		this.currentMode = transformMode;
 
 		if (this.currentMode === eTransformMode.Move)
-			this.currentControl = this.moveObjectControl;
+			this.currentControl = this.moveControl;
+		else if (this.currentMode === eTransformMode.Scale)
+			this.currentControl = this.scaleControl;
 		else
-			this.currentControl = this.scaleObjectControl;
+			this.currentControl = this.rotateControl;
 
 		this.attachCurrentControls(object, scene, object);
 	}
 
 	attachCurrentControls(object, scene) {
 		if (object) {
-			this.currentControl.position.copy(object.position);
+			this.update(object);
 			scene.add(this.currentControl);
 		}
 	}
@@ -67,10 +67,13 @@ class TransformObjectControl {
 		var cameraToSelectedObjectDistance = camera.position.distanceTo(selectedObject.position);
 		var delta = new THREE.Vector3(cameraToSelectedObjectDistance, cameraToSelectedObjectDistance, cameraToSelectedObjectDistance);
 		delta.multiplyScalar(0.04);
-		
-		this.currentControl.scale.x = delta.x;
-		this.currentControl.scale.y = delta.y;
-		this.currentControl.scale.z = delta.z;
+
+		this.currentControl.scale.copy(delta);
+	}
+
+	update(object) {
+		this.currentControl.copyRotation(object.rotation);
+		this.currentControl.position.copy(object.position);
 	}
 }
 

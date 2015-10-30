@@ -151,7 +151,7 @@ class Environment {
 		if (object) {
 			this.scene.remove(object);
 			let index = addedObjects.indexOf(object);
-			addedObjects.slice(index, 1);
+			addedObjects.splice(index, 1);
 		}
 	}
 
