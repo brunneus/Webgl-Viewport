@@ -4323,11 +4323,12 @@
 	
 			_get(Object.getPrototypeOf(GizmoRotateObject.prototype), 'constructor', this).call(this, normal, axisName);
 	
-			var material = new _libThreeJs2['default'].LineBasicMaterial({ color: color });
+			var material = new _libThreeJs2['default'].LineBasicMaterial({ color: color, depthTest: false });
 			var geometry = new _libThreeJs2['default'].CircleGeometry(radius, 50);
 			geometry.vertices.shift();
 	
 			this.circle = new _libThreeJs2['default'].Line(geometry, material);
+			this.circle.renderOrder = 2;
 	
 			this.add(this.circle);
 		}
