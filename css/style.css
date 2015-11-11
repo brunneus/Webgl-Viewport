@@ -3,6 +3,12 @@
 	height: 40px;
 }
 
+#helpDiv{
+	position: absolute;
+	right: 10px;
+	top: 5px;
+}
+
 #controls{
 	margin: 10px;
 }
