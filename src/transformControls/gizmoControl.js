@@ -8,8 +8,8 @@ class GizmoControl extends THREE.Object3D {
 	}
 
 	transform(object, delta, environment, intersectionWithGizmoObject) {
+		
 	}
-
 }
 
 export { GizmoControl };

@@ -16,8 +16,8 @@ class GizmoRotateControl extends GizmoControl {
 		xRotate.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 2);
 		yRotate.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
 
-		this.add(xRotate);
 		this.add(yRotate);
+		this.add(xRotate);
 		this.add(zRotate);
 	}
 

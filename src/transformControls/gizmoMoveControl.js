@@ -11,8 +11,8 @@ class GizmoMoveControl extends GizmoControl {
 		var yAxis = new GizmoMoveObject(new THREE.Vector3(0, 1, 0), 0xff0000, 6, "Y");
 		var zAxis = new GizmoMoveObject(new THREE.Vector3(0, 0, 1), 0x00ff00, 6, "Z");
 
-		this.add(xAxis);
 		this.add(yAxis);
+		this.add(xAxis);
 		this.add(zAxis);
 	}
 
