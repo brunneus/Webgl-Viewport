@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://tgcandido@bitbucket.org/monstraumdos3d/balasso.git"
+    "url": "git+https://github.com/brunneus/Webgl-Viewport"
   },
   "keywords": [
     "engine"
