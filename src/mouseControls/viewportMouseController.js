@@ -24,7 +24,7 @@ class ViewportMouseController extends BaseMouseController  {
 	onMouseUp(environment, event) {
 		var mouseUpPosition = new THREE.Vector2(event.clientX, event.clientY);
 
-		if (mouseUpPosition.distanceTo(this.mouseDownPosition) == 0) {
+		if (mouseUpPosition.distanceTo(this.mouseDownPosition) == 0 && event.which == eMouseButtons.Left) {
 			environment.selectObjectUnderMouse(event);
 		}
 	}

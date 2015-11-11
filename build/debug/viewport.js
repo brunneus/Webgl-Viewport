@@ -2927,7 +2927,7 @@
 			value: function onMouseUp(environment, event) {
 				var mouseUpPosition = new _libThreeJs2['default'].Vector2(event.clientX, event.clientY);
 	
-				if (mouseUpPosition.distanceTo(this.mouseDownPosition) == 0) {
+				if (mouseUpPosition.distanceTo(this.mouseDownPosition) == 0 && event.which == _eMouseButtonsJs.eMouseButtons.Left) {
 					environment.selectObjectUnderMouse(event);
 				}
 			}
